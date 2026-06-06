@@ -141,7 +141,20 @@ def parse_policy_inputs(
 
 @app.get("/", response_class=HTMLResponse)
 async def get_index(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    """
+    Render the homepage.
+
+    Starlette 1.0+ expects the ``TemplateResponse`` signature to take the
+    ``request`` as the first argument followed by the template name and
+    an optional context. Passing the context as a positional argument
+    using the old signature results in a ``TypeError`` in recent
+    Starlette versions【998423267929834†L450-L462】.  To ensure forward
+    compatibility we always pass ``request`` as the first argument.
+    """
+    # With the new Starlette API the request must be the first positional
+    # argument. The context can be omitted because ``request`` will be
+    # automatically injected into the template context.
+    return templates.TemplateResponse(request, "index.html")
 
 
 @app.post("/process", response_class=HTMLResponse)
@@ -251,10 +264,12 @@ async def process(
     for p in policies:
         issues = check_policy_against_baa(p, baa) + check_bordereau_delays(p, bordereau)
         results.append({"policy": p, "issues": issues})
+    # Render the results page. The request must be passed as the first
+    # positional argument to conform with the Starlette 1.0+ template API.
     return templates.TemplateResponse(
+        request,
         "results.html",
         {
-            "request": request,
             "baa": baa,
             "results": results,
         },

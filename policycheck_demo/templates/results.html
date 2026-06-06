@@ -56,7 +56,10 @@
       {% endfor %}
     </section>
     <div class="actions">
-      <a href="{{ url_for('index') }}" class="btn">Start Over</a>
+      {# The endpoint for the homepage is defined by the function name
+         ``get_index``. Starlette uses the function name as the endpoint
+         identifier, so we must reference it explicitly in ``url_for``. #}
+      <a href="{{ url_for('get_index') }}" class="btn">Start Over</a>
     </div>
   </main>
   <footer>
