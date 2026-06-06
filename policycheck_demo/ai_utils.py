@@ -25,16 +25,72 @@ The key functions are:
 """
 
 import re
+import os
+import requests
 from datetime import datetime
 from typing import Dict, List, Optional
 
 try:
+    # The local transformers pipeline is optional; in many deployments we
+    # prefer to call the Hugging Face Inference API instead of loading
+    # models locally. If transformers cannot be imported the summarizer
+    # will fall back to the remote API or a naive truncation.
     from transformers import pipeline
     _transformers_available = True
 except ImportError:
     _transformers_available = False
 
 _summarizer = None
+
+# -----------------------------------------------------------------------------
+# Hugging Face Inference API integration
+#
+# To avoid downloading and storing large model weights in memory‑limited
+# environments (e.g. Render free tier), we first attempt to call the
+# Hugging Face Inference API. The API requires a personal access token with
+# permission to make inference calls. Set the token in the environment
+# variable ``HF_TOKEN``. See https://huggingface.co/settings/tokens
+#
+# The API endpoint returns a list of objects with either ``generated_text``
+# or ``summary_text`` keys depending on the model.
+
+def _hf_summarize(text: str, max_length: int) -> Optional[str]:
+    """Attempt to summarise text via the Hugging Face Inference API.
+
+    If a token is not configured or the API call fails, return ``None`` so that
+    the caller can fall back to another strategy.
+    """
+    token = os.environ.get("HF_TOKEN")
+    if not token:
+        return None
+    url = "https://api-inference.huggingface.co/models/google/flan-t5-small"
+    headers = {"Authorization": f"Bearer {token}"}
+    payload = {
+        "inputs": text,
+        "parameters": {
+            "max_length": max_length,
+            "min_length": 30,
+            "do_sample": False,
+        },
+    }
+    try:
+        response = requests.post(url, headers=headers, json=payload, timeout=30)
+        # A 503 status code indicates the model is loading; retry logic could be
+        # added here if desired, but for simplicity we bail out and fall back.
+        if response.status_code >= 500:
+            return None
+        response.raise_for_status()
+        result = response.json()
+        if isinstance(result, dict) and result.get("error"):
+            return None
+        if isinstance(result, list) and result:
+            item = result[0]
+            # flan‑t5 returns ``generated_text``, whereas other summarization models
+            # may return ``summary_text``.
+            return item.get("generated_text") or item.get("summary_text")
+        return None
+    except Exception:
+        return None
 
 def _get_summarizer():
     """Lazily load the T5 summarizer.
@@ -60,22 +116,32 @@ def _get_summarizer():
 
 
 def summarize(text: str, max_length: int = 120) -> str:
-    """Summarise a block of text using a small T5 model.
+    """Summarise a block of text using an available summarization strategy.
 
-    If the summarizer cannot be loaded, this function returns the
-    first ``max_length`` characters of the input text as a naive
-    approximation of a summary.
+    The function attempts the following strategies in order:
+
+    1. Call the Hugging Face Inference API if an access token is provided in
+       the ``HF_TOKEN`` environment variable. This avoids loading large models
+       locally and is ideal for memory‑constrained deployments.
+    2. Use a local Transformers pipeline (T5‑small) if the ``transformers``
+       and ``torch`` libraries are installed and the model can be loaded.
+    3. Fall back to returning the first ``max_length`` characters of the
+       original text as a naive approximation.
     """
+    # First try the remote inference API
+    remote_summary = _hf_summarize(text, max_length)
+    if remote_summary:
+        return remote_summary
+    # If remote call failed or not configured, try local summarizer
     summarizer = _get_summarizer()
-    if summarizer is None:
-        # Fallback: return the leading characters of the text
-        return text[:max_length] + ("…" if len(text) > max_length else "")
-    # Transformers summarizer expects a list of documents
-    try:
-        summary = summarizer(text, max_length=max_length, min_length=30, do_sample=False)
-        return summary[0]["summary_text"]
-    except Exception:
-        return text[:max_length] + ("…" if len(text) > max_length else "")
+    if summarizer is not None:
+        try:
+            result = summarizer(text, max_length=max_length, min_length=30, do_sample=False)
+            return result[0].get("summary_text", text[:max_length] + ("…" if len(text) > max_length else ""))
+        except Exception:
+            pass
+    # Final fallback: return the leading characters
+    return text[:max_length] + ("…" if len(text) > max_length else "")
 
 
 def _extract_dates(text: str) -> List[datetime]:
