@@ -2,5 +2,5 @@ fastapi
 uvicorn
 jinja2
 python-multipart
-transformers
-torch
+huggingface_hub
+requests
