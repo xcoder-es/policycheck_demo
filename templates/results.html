@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Results – Digital Twin</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
+  </style>
+</head>
+<body>
+  <header class="hero small">
+    <div class="container">
+      <h1>Digital Twin Results</h1>
+      <p>Your BAA and policies have been processed.  Review the findings below.</p>
+    </div>
+  </header>
+  <main class="container results">
+    <section class="baa-summary">
+      <h2>Binding Authority Agreement</h2>
+      <ul>
+        <li><strong>Name:</strong> {{ baa.name }}</li>
+        <li><strong>Period:</strong> {{ baa.start_date.date() }} – {{ baa.end_date.date() }}</li>
+        <li><strong>Territory:</strong> {{ baa.territory | join(', ') }}</li>
+        <li><strong>Classes of Business:</strong> {{ baa.class_of_business | join(', ') }}</li>
+        <li><strong>Authority Limit:</strong> {{ '{:,.0f}'.format(baa.authority_limit) }}</li>
+        <li><strong>Required Endorsements:</strong> {{ baa.required_endorsements | join(', ') }}</li>
+      </ul>
+    </section>
+    <section class="policies">
+      <h2>Policies</h2>
+      {% for item in results %}
+      <div class="policy-card">
+        <h3>{{ item.policy.policy_number }}</h3>
+        <ul>
+          <li><strong>Bind Date:</strong> {{ item.policy.bind_date.date() }}</li>
+          <li><strong>Territory:</strong> {{ item.policy.territory }}</li>
+          <li><strong>Class of Business:</strong> {{ item.policy.class_of_business }}</li>
+          <li><strong>Sum Insured:</strong> {{ '{:,.0f}'.format(item.policy.sum_insured) }}</li>
+          <li><strong>Endorsements:</strong> {{ item.policy.endorsements | join(', ') }}</li>
+        </ul>
+        {% if item.issues %}
+        <div class="issues">
+          <h4>Issues</h4>
+          <ul>
+            {% for issue in item.issues %}
+            <li>{{ issue }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+        {% else %}
+        <p class="no-issues">No issues detected</p>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </section>
+    <div class="actions">
+      <a href="{{ url_for('index') }}" class="btn">Start Over</a>
+    </div>
+  </main>
+  <footer>
+    <div class="container">
+      <p>Demo for illustrative purposes only.  No data is stored.</p>
+    </div>
+  </footer>
+</body>
+</html>

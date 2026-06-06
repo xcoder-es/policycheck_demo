@@ -1,0 +1,165 @@
+/* Base styles for the PolicyCheck digital twin demo */
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  color: #15233a;
+  background-color: #f5f7fa;
+}
+a {
+  color: #0066cc;
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+.container {
+  width: 90%;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+.hero {
+  background-color: #061a2e;
+  color: #ffffff;
+  padding: 3rem 0 2rem 0;
+  text-align: center;
+}
+.hero.small {
+  padding: 1.5rem 0;
+}
+.hero h1 {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 600;
+}
+.hero p {
+  margin: 0.5rem 0 0;
+  font-size: 1rem;
+  opacity: 0.8;
+}
+footer {
+  margin-top: 3rem;
+  padding: 1rem 0;
+  background-color: #061a2e;
+  color: #ffffff;
+  font-size: 0.875rem;
+  text-align: center;
+}
+/* Form styles */
+.form-box {
+  background-color: #ffffff;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  padding: 2rem;
+  margin-bottom: 3rem;
+}
+.form-box h2 {
+  margin-top: 0;
+  font-size: 1.5rem;
+  color: #061a2e;
+}
+.form-box label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.9rem;
+  color: #15233a;
+}
+.form-box input[type="text"],
+.form-box input[type="date"],
+.form-box input[type="file"],
+.form-box textarea {
+  padding: 0.5rem;
+  border: 1px solid #ccd6e0;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+.form-box input[type="file"] {
+  padding: 0.3rem;
+}
+.form-box textarea {
+  resize: vertical;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+}
+.full-width {
+  grid-column: 1 / -1;
+}
+.policy-box {
+  margin-bottom: 1rem;
+  padding: 1rem;
+  border: 1px solid #e0e6ed;
+  border-radius: 4px;
+}
+.policy-box legend {
+  font-weight: 600;
+  color: #061a2e;
+  padding: 0 0.5rem;
+}
+.btn {
+  display: inline-block;
+  padding: 0.6rem 1.2rem;
+  background-color: #0066cc;
+  color: #ffffff;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out;
+  text-align: center;
+}
+.btn:hover {
+  background-color: #004f99;
+}
+/* Results page */
+.results h2 {
+  margin-top: 2rem;
+  font-size: 1.5rem;
+  color: #061a2e;
+}
+.policy-card {
+  background-color: #ffffff;
+  border: 1px solid #e0e6ed;
+  border-radius: 6px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+.policy-card h3 {
+  margin-top: 0;
+  color: #0066cc;
+}
+.policy-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 0.5rem 0;
+}
+.policy-card li {
+  margin-bottom: 0.25rem;
+}
+.issues {
+  background-color: #ffe9e9;
+  border: 1px solid #f5c2c2;
+  border-radius: 4px;
+  padding: 0.5rem;
+}
+.issues h4 {
+  margin-top: 0;
+  color: #a33;
+}
+.no-issues {
+  color: #2c662d;
+  background-color: #dff0d8;
+  border: 1px solid #d0e9c6;
+  border-radius: 4px;
+  padding: 0.5rem;
+}
+.actions {
+  margin-top: 2rem;
+}
