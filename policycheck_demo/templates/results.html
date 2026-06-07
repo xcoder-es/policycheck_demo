@@ -3,68 +3,170 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Results – Digital Twin</title>
+  <title>PolicyCheck Results - Digital Twin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}">
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
-  </style>
+  <link rel="stylesheet" href="{{ url_for('static', path='/accessibility.css') }}">
 </head>
 <body>
-  <header class="hero small">
-    <div class="container">
-      <h1>Digital Twin Results</h1>
-      <p>Your BAA and policies have been processed.  Review the findings below.</p>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <header class="site-header" aria-label="Primary navigation">
+    <div class="shell nav-shell">
+      <a href="{{ url_for('get_index') }}" class="brand" aria-label="PolicyCheck demo home">
+        <span class="brand-mark" aria-hidden="true">✓</span>
+        <span class="brand-copy">
+          <strong>PolicyCheck</strong>
+          <small>Digital Twin POC</small>
+        </span>
+      </a>
+      <nav class="nav-links" aria-label="Results navigation">
+        <a href="{{ url_for('get_index') }}#demo">New demo</a>
+        <a href="#summary">Summary</a>
+        <a href="#policies">Policies</a>
+      </nav>
     </div>
   </header>
-  <main class="container results">
-    <section class="baa-summary">
-      <h2>Binding Authority Agreement</h2>
-      <ul>
-        <li><strong>Name:</strong> {{ baa.name }}</li>
-        <li><strong>Period:</strong> {{ baa.start_date.date() }} – {{ baa.end_date.date() }}</li>
-        <li><strong>Territory:</strong> {{ baa.territory | join(', ') }}</li>
-        <li><strong>Classes of Business:</strong> {{ baa.class_of_business | join(', ') }}</li>
-        <li><strong>Authority Limit:</strong> {{ '{:,.0f}'.format(baa.authority_limit) }}</li>
-        <li><strong>Required Endorsements:</strong> {{ baa.required_endorsements | join(', ') }}</li>
-      </ul>
-    </section>
-    <section class="policies">
-      <h2>Policies</h2>
-      {% for item in results %}
-      <div class="policy-card">
-        <h3>{{ item.policy.policy_number }}</h3>
-        <ul>
-          <li><strong>Bind Date:</strong> {{ item.policy.bind_date.date() }}</li>
-          <li><strong>Territory:</strong> {{ item.policy.territory }}</li>
-          <li><strong>Class of Business:</strong> {{ item.policy.class_of_business }}</li>
-          <li><strong>Sum Insured:</strong> {{ '{:,.0f}'.format(item.policy.sum_insured) }}</li>
-          <li><strong>Endorsements:</strong> {{ item.policy.endorsements | join(', ') }}</li>
-        </ul>
-        {% if item.issues %}
-        <div class="issues">
-          <h4>Issues</h4>
-          <ul>
-            {% for issue in item.issues %}
-            <li>{{ issue }}</li>
-            {% endfor %}
-          </ul>
+
+  <main id="main-content" tabindex="-1">
+    <section class="hero hero-compact" aria-labelledby="results-title">
+      <div class="shell hero-grid">
+        <div class="hero-copy">
+          <p class="eyebrow">Digital twin results</p>
+          <h1 id="results-title">Validation outcomes, ready for review</h1>
+          <p class="hero-subtitle">Your Binding Authority Agreement and policies have been processed. Review authority, territory, wording and reporting findings below.</p>
+          <div class="hero-actions" aria-label="Result actions">
+            <a href="{{ url_for('get_index') }}#demo" class="btn btn-primary">Run another check</a>
+            <a href="#policies" class="btn btn-secondary">View policy cards</a>
+          </div>
         </div>
-        {% else %}
-        <p class="no-issues">No issues detected</p>
-        {% endif %}
+        <aside class="hero-card results-card" aria-label="Result overview">
+          <div class="status-pill"><span aria-hidden="true"></span> Review required</div>
+          <h2>{{ results|length }} policies processed</h2>
+          <p>Each policy is presented as a decision card with clear pass or fail indicators.</p>
+        </aside>
       </div>
-      {% endfor %}
     </section>
-    <div class="actions">
-      {# The endpoint for the homepage is defined by the function name
-         ``get_index``. Starlette uses the function name as the endpoint
-         identifier, so we must reference it explicitly in ``url_for``. #}
-      <a href="{{ url_for('get_index') }}" class="btn">Start Over</a>
-    </div>
+
+    <section id="summary" class="section results-section" aria-labelledby="baa-title">
+      <div class="shell results-layout">
+        <article class="summary-card">
+          <div class="card-header">
+            <div>
+              <p class="eyebrow">Source of truth</p>
+              <h2 id="baa-title">Binding Authority Agreement</h2>
+            </div>
+            <span class="status-badge status-neutral">BAA</span>
+          </div>
+          <dl class="detail-grid">
+            <div>
+              <dt>Name</dt>
+              <dd>{{ baa.name }}</dd>
+            </div>
+            <div>
+              <dt>Period</dt>
+              <dd>{{ baa.start_date.date() }} - {{ baa.end_date.date() }}</dd>
+            </div>
+            <div>
+              <dt>Territory</dt>
+              <dd>{{ baa.territory | join(', ') }}</dd>
+            </div>
+            <div>
+              <dt>Classes of Business</dt>
+              <dd>{{ baa.class_of_business | join(', ') }}</dd>
+            </div>
+            <div>
+              <dt>Authority Limit</dt>
+              <dd>{{ '{:,.0f}'.format(baa.authority_limit) }}</dd>
+            </div>
+            <div>
+              <dt>Required Endorsements</dt>
+              <dd>{{ baa.required_endorsements | join(', ') }}</dd>
+            </div>
+          </dl>
+        </article>
+
+        <section id="policies" class="policy-results" aria-labelledby="policy-results-title">
+          <div class="section-heading left">
+            <p class="eyebrow">Contract certainty check</p>
+            <h2 id="policy-results-title">Policies</h2>
+            <p>Pass and fail indicators make it easy to spot authority breaches and missing requirements.</p>
+          </div>
+
+          {% for item in results %}
+          <article class="policy-result-card {% if item.issues %}has-issues{% else %}is-clear{% endif %}" aria-labelledby="policy-title-{{ loop.index }}">
+            <div class="policy-result-header">
+              <div class="result-icon" aria-hidden="true">{% if item.issues %}×{% else %}✓{% endif %}</div>
+              <div>
+                <h3 id="policy-title-{{ loop.index }}">{{ item.policy.policy_number }}</h3>
+                {% if item.issues %}
+                <p>{{ item.issues|length }} issue{% if item.issues|length != 1 %}s{% endif %} detected</p>
+                {% else %}
+                <p>No issues detected</p>
+                {% endif %}
+              </div>
+              {% if item.issues %}
+              <span class="status-badge status-fail">Fail</span>
+              {% else %}
+              <span class="status-badge status-pass">Pass</span>
+              {% endif %}
+            </div>
+
+            <dl class="detail-grid compact">
+              <div>
+                <dt>Bind Date</dt>
+                <dd>{{ item.policy.bind_date.date() }}</dd>
+              </div>
+              <div>
+                <dt>Territory</dt>
+                <dd>{{ item.policy.territory }}</dd>
+              </div>
+              <div>
+                <dt>Class</dt>
+                <dd>{{ item.policy.class_of_business }}</dd>
+              </div>
+              <div>
+                <dt>Sum Insured</dt>
+                <dd>{{ '{:,.0f}'.format(item.policy.sum_insured) }}</dd>
+              </div>
+              <div class="full-width">
+                <dt>Endorsements</dt>
+                <dd>{{ item.policy.endorsements | join(', ') }}</dd>
+              </div>
+            </dl>
+
+            {% if item.issues %}
+            <div class="issues-panel" role="status">
+              <h4>Issues to review</h4>
+              <ul>
+                {% for issue in item.issues %}
+                <li><span aria-hidden="true">×</span>{{ issue }}</li>
+                {% endfor %}
+              </ul>
+            </div>
+            {% else %}
+            <div class="clear-panel" role="status">
+              <span aria-hidden="true">✓</span>
+              <p>This policy is aligned with the reviewed BAA rule set.</p>
+            </div>
+            {% endif %}
+          </article>
+          {% endfor %}
+        </section>
+
+        <div class="actions">
+          <a href="{{ url_for('get_index') }}" class="btn btn-primary">Start Over</a>
+        </div>
+      </div>
+    </section>
   </main>
-  <footer>
-    <div class="container">
-      <p>Demo for illustrative purposes only.  No data is stored.</p>
+
+  <footer class="site-footer">
+    <div class="shell footer-shell">
+      <p>PolicyCheck demo for illustrative purposes only.</p>
+      <p>No data is stored.</p>
     </div>
   </footer>
 </body>
