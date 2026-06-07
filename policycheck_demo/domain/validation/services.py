@@ -21,7 +21,10 @@ def _normalise(value: str) -> str:
 
 def _has_endorsement(required: str, provided: list[str]) -> bool:
     required_norm = _normalise(required)
-    return any(required_norm == _normalise(item) or required_norm in _normalise(item) for item in provided)
+    return any(
+        required_norm == _normalise(item) or required_norm in _normalise(item)
+        for item in provided
+    )
 
 
 def validate_policy_against_baa(policy: PolicyRecord, baa: BAARules) -> ValidationResult:
@@ -160,7 +163,11 @@ def build_portfolio_summary(results: list[ValidationResult]) -> PortfolioValidat
     high = sum(1 for item in results for issue in item.issues if issue.severity == Severity.HIGH)
     exposure = sum((item.sum_insured for item in results), Decimal("0"))
     outside = sum(
-        (item.sum_insured for item in results if any(i.issue_type == "Above authority limit" for i in item.issues)),
+        (
+            item.sum_insured
+            for item in results
+            if any(i.issue_type == "Above authority limit" for i in item.issues)
+        ),
         Decimal("0"),
     )
     issue_counter = Counter(issue.issue_type for item in results for issue in item.issues)
