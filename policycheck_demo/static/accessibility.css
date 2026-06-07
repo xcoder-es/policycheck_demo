@@ -1,0 +1,366 @@
+/* Accessibility and viewport hardening for the dark PolicyCheck UI */
+
+.skip-link {
+  position: fixed;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 999;
+  transform: translateY(-160%);
+  padding: 0.85rem 1rem;
+  border-radius: 999px;
+  color: #02130a;
+  background: var(--accent);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+  font-weight: 800;
+  transition: transform 0.18s ease;
+}
+
+.skip-link:focus,
+.skip-link:focus-visible {
+  transform: translateY(0);
+  outline: 3px solid #ffffff;
+  outline-offset: 3px;
+}
+
+[tabindex="-1"]:focus {
+  outline: none;
+}
+
+.brand,
+.nav-links a,
+.btn,
+input,
+textarea,
+input[type='file']::file-selector-button {
+  min-height: 44px;
+}
+
+.brand,
+.nav-links,
+.hero-copy,
+.hero-card,
+.form-card,
+.summary-card,
+.policy-result-card,
+.feature-card,
+.upload-panel,
+.field-label,
+.detail-grid > div,
+dd,
+input,
+textarea {
+  min-width: 0;
+}
+
+h1,
+h2,
+h3,
+p,
+dd,
+li,
+input,
+textarea,
+.btn,
+.nav-links a {
+  overflow-wrap: anywhere;
+}
+
+button,
+input,
+textarea,
+select,
+.btn,
+a {
+  -webkit-tap-highlight-color: rgba(52, 240, 140, 0.25);
+}
+
+.nav-links {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.hero-card,
+.form-card,
+.summary-card,
+.policy-result-card,
+.feature-card,
+.policy-box,
+.upload-panel {
+  overflow: hidden;
+}
+
+input[type='date'] {
+  color-scheme: dark;
+}
+
+input[type='file'] {
+  line-height: 1.4;
+}
+
+.form-card input,
+.form-card textarea {
+  max-width: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.001ms !important;
+  }
+
+  .btn:hover {
+    transform: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --border: rgba(255, 255, 255, 0.22);
+    --border-strong: rgba(255, 255, 255, 0.38);
+    --text-muted: #c8d3df;
+    --text-soft: #eef4f8;
+  }
+
+  .btn-secondary,
+  input,
+  textarea,
+  .policy-box,
+  .upload-panel,
+  .hero-card,
+  .form-card,
+  .summary-card,
+  .policy-result-card,
+  .feature-card {
+    border-color: var(--border-strong);
+  }
+}
+
+@media (forced-colors: active) {
+  body,
+  .site-header,
+  .site-footer,
+  .hero-card,
+  .form-card,
+  .summary-card,
+  .policy-result-card,
+  .feature-card,
+  .upload-panel,
+  .policy-box,
+  .notice,
+  .review-banner,
+  input,
+  textarea {
+    background: Canvas;
+    color: CanvasText;
+    border-color: CanvasText;
+    box-shadow: none;
+  }
+
+  .btn,
+  .brand-mark,
+  .result-icon,
+  .clear-panel span,
+  .notice-icon {
+    forced-color-adjust: none;
+    background: ButtonFace;
+    color: ButtonText;
+    border: 1px solid ButtonText;
+  }
+}
+
+@media (min-width: 1440px) {
+  :root {
+    --max-width: 1280px;
+  }
+
+  .hero {
+    padding-top: 8rem;
+    padding-bottom: 6rem;
+  }
+
+  .hero-grid {
+    grid-template-columns: minmax(0, 1.15fr) minmax(360px, 0.65fr);
+    gap: 3rem;
+  }
+}
+
+@media (max-width: 1180px) {
+  .hero-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 0.85fr);
+  }
+
+  .form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .detail-grid.compact {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 980px) {
+  .nav-shell {
+    align-items: flex-start;
+    padding-block: 0.9rem;
+  }
+
+  .nav-links {
+    justify-content: flex-start;
+    gap: 0.4rem;
+  }
+
+  .hero-card {
+    max-width: 720px;
+  }
+}
+
+@media (max-width: 820px) {
+  .site-header {
+    position: static;
+  }
+
+  .hero-grid,
+  .workflow-grid,
+  .form-grid,
+  .detail-grid,
+  .detail-grid.compact,
+  .upload-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-actions,
+  .form-actions,
+  .actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .btn {
+    width: 100%;
+  }
+
+  .policy-result-header {
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .shell {
+    width: min(100% - 1rem, var(--max-width));
+  }
+
+  .nav-shell {
+    min-height: auto;
+    gap: 0.9rem;
+  }
+
+  .brand-mark {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+  }
+
+  .brand-copy strong {
+    font-size: 0.88rem;
+  }
+
+  .brand-copy small {
+    font-size: 0.66rem;
+  }
+
+  .nav-links {
+    width: 100%;
+  }
+
+  .nav-links a {
+    padding: 0.55rem 0.65rem;
+    font-size: 0.84rem;
+  }
+
+  .hero {
+    padding: 3.2rem 0 2.25rem;
+  }
+
+  .hero h1 {
+    font-size: clamp(2.45rem, 15vw, 3.65rem);
+    line-height: 0.98;
+  }
+
+  .hero-subtitle {
+    font-size: 0.98rem;
+    line-height: 1.65;
+  }
+
+  .section-heading h2,
+  .form-header h2,
+  .form-divider h2,
+  .summary-card h2,
+  .policy-results h2 {
+    font-size: clamp(1.75rem, 10vw, 2.4rem);
+    line-height: 1.05;
+  }
+
+  .metric-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-card,
+  .summary-card,
+  .policy-result-card,
+  .feature-card,
+  .hero-card,
+  .policy-box {
+    padding: 1rem;
+    border-radius: 18px;
+  }
+
+  .field-label,
+  input,
+  textarea,
+  .btn {
+    font-size: 0.95rem;
+  }
+}
+
+@media (max-width: 420px) {
+  .shell {
+    width: min(100% - 0.75rem, var(--max-width));
+  }
+
+  .hero h1 {
+    font-size: 2.25rem;
+  }
+
+  .hero-card,
+  .form-card,
+  .summary-card,
+  .policy-result-card,
+  .feature-card,
+  .policy-box,
+  .upload-panel,
+  .notice,
+  .review-banner {
+    border-radius: 16px;
+  }
+
+  .policy-result-header,
+  .card-header,
+  .form-header {
+    gap: 0.75rem;
+  }
+
+  .result-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 14px;
+  }
+
+  input,
+  textarea {
+    padding-inline: 0.85rem;
+  }
+}
