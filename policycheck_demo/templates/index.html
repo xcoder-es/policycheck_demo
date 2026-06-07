@@ -3,123 +3,224 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Digital Twin Demo - PolicyCheck POC</title>
+  <title>PolicyCheck Demo - Operational Intelligence</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}">
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
-  </style>
 </head>
 <body>
-  <header class="hero">
-    <div class="container">
-      <h1>Digital Twin Proof of Concept</h1>
-      <p>Create a live digital twin of your Binding Authority Agreement and policies using modern AI techniques.</p>
+  <header class="site-header" aria-label="Primary navigation">
+    <div class="shell nav-shell">
+      <a href="{{ url_for('get_index') }}" class="brand" aria-label="PolicyCheck demo home">
+        <span class="brand-mark">✓</span>
+        <span class="brand-copy">
+          <strong>PolicyCheck</strong>
+          <small>Digital Twin POC</small>
+        </span>
+      </a>
+      <nav class="nav-links" aria-label="Demo navigation">
+        <a href="#workflow">How it works</a>
+        <a href="#demo">Demo</a>
+        <a href="#policies">Policies</a>
+      </nav>
     </div>
   </header>
-  <main class="container">
-    <form action="{{ url_for('process') }}" method="post" enctype="multipart/form-data" class="form-box">
-      <h2>Binding Authority Agreement</h2>
-      <p class="helper-text">Upload a text-based BAA PDF to extract the rules, then review and edit the structured fields before validation.</p>
 
-      {% if baa_extraction_message %}
-      <div class="notice success">{{ baa_extraction_message }}</div>
-      {% endif %}
-      {% if baa_extraction_error %}
-      <div class="notice error">{{ baa_extraction_error }}</div>
-      {% endif %}
-
-      <div class="upload-panel">
-        <label>
-          BAA PDF or text file
-          <input type="file" name="baa_file" accept=".pdf,application/pdf,.txt,text/plain" />
-        </label>
-        <button type="submit" class="btn secondary" formaction="{{ url_for('extract_baa') }}" formmethod="post">
-          Extract BAA Rules
-        </button>
-      </div>
-
-      <div class="review-banner">
-        Human review step: extraction is a draft. Confirm the fields below before generating the digital twin.
-      </div>
-
-      <div class="grid">
-        <label>
-          Agreement Name
-          <input type="text" name="baa_name" placeholder="BAA name" value="{{ baa_form.baa_name }}" />
-        </label>
-        <label>
-          Start Date
-          <input type="date" name="baa_start_date" value="{{ baa_form.baa_start_date }}" />
-        </label>
-        <label>
-          End Date
-          <input type="date" name="baa_end_date" value="{{ baa_form.baa_end_date }}" />
-        </label>
-        <label>
-          Territories (comma-separated)
-          <input type="text" name="baa_territory" placeholder="Spain, Portugal, France" value="{{ baa_form.baa_territory }}" />
-        </label>
-        <label>
-          Classes of Business (comma-separated)
-          <input type="text" name="baa_class" placeholder="Property, Casualty" value="{{ baa_form.baa_class }}" />
-        </label>
-        <label>
-          Authority Limit
-          <input type="text" name="baa_authority_limit" placeholder="2000000" value="{{ baa_form.baa_authority_limit }}" />
-        </label>
-        <label>
-          Required Endorsements (comma-separated)
-          <input type="text" name="baa_endorsements" placeholder="Sanctions Clause, Cyber Exclusion" value="{{ baa_form.baa_endorsements }}" />
-        </label>
-        <label class="full-width">
-          BAA Text (optional - extracted text appears here for review)
-          <textarea name="baa_text" rows="5" placeholder="Paste BAA document text here">{{ baa_form.baa_text }}</textarea>
-        </label>
-      </div>
-
-      <h2>Policies</h2>
-      <p>You can upload up to three policies. If you omit some fields but provide a policy document, the AI will attempt to extract them.</p>
-      {% for i in range(1, 4) %}
-      <fieldset class="policy-box">
-        <legend>Policy {{ i }}</legend>
-        <div class="grid">
-          <label>
-            Number
-            <input type="text" name="policy{{ i }}_number" placeholder="PC00{{ i }}" />
-          </label>
-          <label>
-            Bind Date
-            <input type="date" name="policy{{ i }}_bind_date" />
-          </label>
-          <label>
-            Territory
-            <input type="text" name="policy{{ i }}_territory" placeholder="Spain" />
-          </label>
-          <label>
-            Class of Business
-            <input type="text" name="policy{{ i }}_class" placeholder="Property" />
-          </label>
-          <label>
-            Sum Insured
-            <input type="text" name="policy{{ i }}_sum_insured" placeholder="1500000" />
-          </label>
-          <label>
-            Endorsements
-            <input type="text" name="policy{{ i }}_endorsements" placeholder="Sanctions Clause, Cyber Exclusion" />
-          </label>
-          <label class="full-width">
-            Policy Document (txt or text-based PDF)
-            <input type="file" name="policy{{ i }}_file" accept=".txt,text/plain,.pdf,application/pdf" />
-          </label>
+  <main>
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="shell hero-grid">
+        <div class="hero-copy">
+          <p class="eyebrow">Operational intelligence for insurance</p>
+          <h1 id="hero-title">Catch insurance mistakes before they spread</h1>
+          <p class="hero-subtitle">Operational intelligence for insurance. Convert BAA and policy documents into a structured digital twin, then validate authority, wording and bordereaux risk before it becomes expensive.</p>
+          <div class="hero-actions" aria-label="Primary actions">
+            <a class="btn btn-primary" href="#demo">Request a demo</a>
+            <a class="btn btn-secondary" href="#workflow">See how it works</a>
+          </div>
         </div>
-      </fieldset>
-      {% endfor %}
-      <button type="submit" class="btn">Generate Digital Twin</button>
-    </form>
+
+        <aside class="hero-card" aria-label="Demo capability preview">
+          <div class="status-pill"><span></span> Live validation layer</div>
+          <h2>Binder digital twin</h2>
+          <p>Extract rules, review the structured view, and compare policies against delegated authority constraints.</p>
+          <div class="metric-grid">
+            <div>
+              <strong>BAA</strong>
+              <span>Rules extracted</span>
+            </div>
+            <div>
+              <strong>3x</strong>
+              <span>Policies checked</span>
+            </div>
+            <div>
+              <strong>14d</strong>
+              <span>Bordereaux window</span>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section id="workflow" class="section workflow-section" aria-labelledby="workflow-title">
+      <div class="shell">
+        <div class="section-heading">
+          <p class="eyebrow">Find document mistakes</p>
+          <h2 id="workflow-title">From PDF archaeology to structured oversight</h2>
+          <p>Keep the experience simple: upload, review, validate. The AI assists with extraction, but the operator remains in control.</p>
+        </div>
+        <div class="workflow-grid">
+          <article class="feature-card">
+            <span class="feature-index">01</span>
+            <h3>Extract BAA rules</h3>
+            <p>Read text-based BAA PDFs or pasted text and pre-fill the commercial rule set.</p>
+          </article>
+          <article class="feature-card">
+            <span class="feature-index">02</span>
+            <h3>Review before trust</h3>
+            <p>Confirm dates, territories, classes, limits and endorsements before validation runs.</p>
+          </article>
+          <article class="feature-card">
+            <span class="feature-index">03</span>
+            <h3>Validate policies</h3>
+            <p>Compare bind dates, authority limits, endorsements and bordereaux reporting signals.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="demo" class="section demo-section" aria-labelledby="demo-title">
+      <div class="shell">
+        <form action="{{ url_for('process') }}" method="post" enctype="multipart/form-data" class="form-card">
+          <div class="form-header">
+            <div>
+              <p class="eyebrow">Digital twin builder</p>
+              <h2 id="demo-title">Binding Authority Agreement</h2>
+              <p>Upload a text-based BAA PDF to extract the rules, then review and edit every field before generating the digital twin.</p>
+            </div>
+            <span class="form-badge">Human reviewed</span>
+          </div>
+
+          {% if baa_extraction_message %}
+          <div class="notice success" role="status">
+            <span class="notice-icon">✓</span>
+            <span>{{ baa_extraction_message }}</span>
+          </div>
+          {% endif %}
+          {% if baa_extraction_error %}
+          <div class="notice error" role="alert">
+            <span class="notice-icon">×</span>
+            <span>{{ baa_extraction_error }}</span>
+          </div>
+          {% endif %}
+
+          <div class="upload-panel">
+            <label class="field-label">
+              <span>BAA PDF or text file</span>
+              <input type="file" name="baa_file" accept=".pdf,application/pdf,.txt,text/plain">
+            </label>
+            <button type="submit" class="btn btn-secondary" formaction="{{ url_for('extract_baa') }}" formmethod="post">
+              Extract BAA Rules
+            </button>
+          </div>
+
+          <div class="review-banner">
+            <strong>Review checkpoint.</strong>
+            <span>Extraction is a draft. Confirm the structured fields below before generating the digital twin.</span>
+          </div>
+
+          <div class="grid form-grid">
+            <label class="field-label">
+              <span>Agreement Name</span>
+              <input type="text" name="baa_name" placeholder="BAA name" value="{{ baa_form.baa_name }}">
+            </label>
+            <label class="field-label">
+              <span>Start Date</span>
+              <input type="date" name="baa_start_date" value="{{ baa_form.baa_start_date }}">
+            </label>
+            <label class="field-label">
+              <span>End Date</span>
+              <input type="date" name="baa_end_date" value="{{ baa_form.baa_end_date }}">
+            </label>
+            <label class="field-label">
+              <span>Territories</span>
+              <input type="text" name="baa_territory" placeholder="Spain, Portugal, France" value="{{ baa_form.baa_territory }}">
+            </label>
+            <label class="field-label">
+              <span>Classes of Business</span>
+              <input type="text" name="baa_class" placeholder="Property, Casualty" value="{{ baa_form.baa_class }}">
+            </label>
+            <label class="field-label">
+              <span>Authority Limit</span>
+              <input type="text" name="baa_authority_limit" placeholder="2000000" value="{{ baa_form.baa_authority_limit }}">
+            </label>
+            <label class="field-label full-width">
+              <span>Required Endorsements</span>
+              <input type="text" name="baa_endorsements" placeholder="Sanctions Clause, Cyber Exclusion" value="{{ baa_form.baa_endorsements }}">
+            </label>
+            <label class="field-label full-width">
+              <span>BAA Text</span>
+              <textarea name="baa_text" rows="6" placeholder="Paste BAA document text here">{{ baa_form.baa_text }}</textarea>
+            </label>
+          </div>
+
+          <div id="policies" class="form-divider">
+            <p class="eyebrow">Policy validation</p>
+            <h2>Policies</h2>
+            <p>Upload up to three policies. If fields are left blank but a policy document is provided, the extractor will attempt to fill them in.</p>
+          </div>
+
+          <div class="policy-stack">
+            {% for i in range(1, 4) %}
+            <fieldset class="policy-box">
+              <legend>Policy {{ i }}</legend>
+              <div class="grid form-grid">
+                <label class="field-label">
+                  <span>Number</span>
+                  <input type="text" name="policy{{ i }}_number" placeholder="PC00{{ i }}">
+                </label>
+                <label class="field-label">
+                  <span>Bind Date</span>
+                  <input type="date" name="policy{{ i }}_bind_date">
+                </label>
+                <label class="field-label">
+                  <span>Territory</span>
+                  <input type="text" name="policy{{ i }}_territory" placeholder="Spain">
+                </label>
+                <label class="field-label">
+                  <span>Class of Business</span>
+                  <input type="text" name="policy{{ i }}_class" placeholder="Property">
+                </label>
+                <label class="field-label">
+                  <span>Sum Insured</span>
+                  <input type="text" name="policy{{ i }}_sum_insured" placeholder="1500000">
+                </label>
+                <label class="field-label">
+                  <span>Endorsements</span>
+                  <input type="text" name="policy{{ i }}_endorsements" placeholder="Sanctions Clause, Cyber Exclusion">
+                </label>
+                <label class="field-label full-width">
+                  <span>Policy Document</span>
+                  <input type="file" name="policy{{ i }}_file" accept=".txt,text/plain,.pdf,application/pdf">
+                </label>
+              </div>
+            </fieldset>
+            {% endfor %}
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Generate Digital Twin</button>
+            <p>No data is stored. This demo runs the validation in-session only.</p>
+          </div>
+        </form>
+      </div>
+    </section>
   </main>
-  <footer>
-    <div class="container">
-      <p>Demo for illustrative purposes only. No data is stored.</p>
+
+  <footer class="site-footer">
+    <div class="shell footer-shell">
+      <p>PolicyCheck demo for illustrative purposes only.</p>
+      <p>Operational intelligence for insurance workflows.</p>
     </div>
   </footer>
 </body>
