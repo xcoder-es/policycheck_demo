@@ -25,7 +25,7 @@ def _hf_summarize(text: str, max_length: int) -> Optional[str]:
                 "inputs": text[:6000],
                 "parameters": {"max_length": max_length, "min_length": 30, "do_sample": False},
             },
-            timeout=20,
+            timeout=8,
         )
         if response.status_code >= 500:
             return None
@@ -43,6 +43,30 @@ def summarize(text: str, max_length: int = 120) -> str:
     if remote_summary:
         return remote_summary
     return text[:max_length] + ("..." if len(text) > max_length else "")
+
+
+def generate_portfolio_summary(metrics: Dict[str, object], fallback_summary: str) -> str:
+    """Generate a short executive summary, falling back deterministically.
+
+    AI is only used to explain the deterministic validation output. It never
+    decides compliance, never blocks validation and is skipped when HF_TOKEN is
+    not configured or the inference endpoint is unavailable.
+    """
+    prompt = (
+        "Write a concise executive summary for an insurance bordereaux validation. "
+        "Do not invent new facts. Use this deterministic validation data only: "
+        f"total policies={metrics.get('total_policies')}, "
+        f"compliant={metrics.get('compliant_policies')}, "
+        f"warnings={metrics.get('warnings')}, "
+        f"breaches={metrics.get('breaches')}, "
+        f"high severity issues={metrics.get('high_severity_issues')}, "
+        f"exposure reviewed={metrics.get('total_exposure_reviewed')}, "
+        f"exposure outside authority={metrics.get('exposure_outside_authority')}, "
+        f"most common issue={metrics.get('most_common_issue')}, "
+        f"percentage compliant={metrics.get('percentage_compliant')}%."
+    )
+    remote_summary = _hf_summarize(prompt, 140)
+    return remote_summary.strip() if remote_summary else fallback_summary
 
 
 def _normalise_text(text: str) -> str:
