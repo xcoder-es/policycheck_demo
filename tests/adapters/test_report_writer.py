@@ -18,13 +18,23 @@ def test_exception_report_contains_validation_columns() -> None:
         insured_name="A&B Holdings, Ltd",
         status=ComplianceStatus.BREACH,
         severity=Severity.HIGH,
-        issues=[ValidationIssue(issue_type="Outside territory", severity=Severity.HIGH, message="Territory issue")],
+        issues=[
+            ValidationIssue(
+                issue_type="Outside territory",
+                severity=Severity.HIGH,
+                message="Territory issue",
+            )
+        ],
         issue_count=1,
         sum_insured=Decimal("1200000"),
         territory="Canada",
         class_of_business="Cyber",
         bind_date=date(2026, 1, 1),
-        original_data={"premium": "12000", "endorsements": "Sanctions Clause", "broker": "Marlow & Co"},
+        original_data={
+            "premium": "12000",
+            "endorsements": "Sanctions Clause",
+            "broker": "Marlow & Co",
+        },
     )
     csv_text = CsvExceptionReportWriter().write_exception_report([result])
     assert "validation_status" in csv_text
@@ -41,7 +51,13 @@ def test_report_generation_handles_special_characters() -> None:
         insured_name='Client "Quoted", Ltd',
         status=ComplianceStatus.WARNING,
         severity=Severity.MEDIUM,
-        issues=[ValidationIssue(issue_type="Missing endorsement", severity=Severity.MEDIUM, message="Missing clause, review")],
+        issues=[
+            ValidationIssue(
+                issue_type="Missing endorsement",
+                severity=Severity.MEDIUM,
+                message="Missing clause, review",
+            )
+        ],
         issue_count=1,
         sum_insured=Decimal("500000"),
         territory="United Kingdom",
