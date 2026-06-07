@@ -114,7 +114,7 @@ def _split_list(value: Optional[str]) -> List[str]:
         return []
     cleaned = re.sub(r"\b(?:and|or)\b", ",", value, flags=re.IGNORECASE)
     cleaned = re.sub(r"\([^)]*\)", "", cleaned)
-    return [item.strip(" .;:-") for item in re.split(r",|;|\|/", cleaned) if item.strip(" .;:-")]
+    return [item.strip(" .;:-") for item in re.split(r",|;|\||/", cleaned) if item.strip(" .;:-")]
 
 
 def _extract_money(text: str) -> Optional[float]:
