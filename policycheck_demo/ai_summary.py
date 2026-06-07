@@ -10,7 +10,7 @@ logger = logging.getLogger("policycheck.ai.summary")
 HF_LEGACY_URL = "https://api-inference.huggingface.co/models/google/flan-t5-small"
 HF_ROUTER_URL = "https://router.huggingface.co/v1/chat/completions"
 HF_TOKEN_ENV_NAMES = ("HF_TOKEN", "HUGGINGFACE_API_TOKEN", "HUGGING_FACE_HUB_TOKEN")
-DEFAULT_HF_SUMMARY_MODEL = "mistralai/Mistral-7B-Instruct-v0.3:fastest"
+DEFAULT_HF_SUMMARY_MODEL = "google/gemma-2-2b-it"
 
 
 def _timeout_seconds() -> float:
@@ -30,6 +30,10 @@ def _token_config() -> tuple[str | None, str | None]:
         if token:
             return token, name
     return None, None
+
+
+def _safe_body(response: requests.Response, max_chars: int = 220) -> str:
+    return response.text.replace("\n", " ").replace("\r", " ")[:max_chars]
 
 
 def _fallback(
@@ -137,6 +141,13 @@ def _request_router_summary(token: str, token_env_name: str, prompt: str, timeou
             token_env_name,
             model,
         )
+        if response.status_code >= 400:
+            logger.warning(
+                "ai_summary_router_http_error status_code=%s model=%s body=%s",
+                response.status_code,
+                model,
+                _safe_body(response),
+            )
         if response.status_code >= 500:
             return None, response.status_code, f"router_server_error_{response.status_code}"
         response.raise_for_status()
