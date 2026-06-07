@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from policycheck_demo.adapters.outbound.ai.fallback_rule_extractor import FallbackRuleExtractor
+from policycheck_demo.adapters.outbound.ai.huggingface_rule_extractor import HuggingFaceRuleExtractor
 from policycheck_demo.adapters.outbound.ai.huggingface_summary_generator import HuggingFaceSummaryGenerator
 from policycheck_demo.adapters.outbound.csv.csv_bordereaux_reader import CsvBordereauxReader
 from policycheck_demo.adapters.outbound.csv.csv_exception_report_writer import CsvExceptionReportWriter
@@ -21,7 +22,8 @@ from policycheck_demo.infrastructure.config import AppConfig, load_config
 class AppContainer:
     config: AppConfig
     pdf_text_extractor: PyPdfTextExtractor
-    rule_extractor: FallbackRuleExtractor
+    fallback_rule_extractor: FallbackRuleExtractor
+    rule_extractor: HuggingFaceRuleExtractor
     summary_generator: HuggingFaceSummaryGenerator
     bordereaux_reader: CsvBordereauxReader
     report_writer: CsvExceptionReportWriter
@@ -35,13 +37,15 @@ class AppContainer:
 def build_container() -> AppContainer:
     config = load_config()
     pdf_extractor = PyPdfTextExtractor()
-    rule_extractor = FallbackRuleExtractor()
+    fallback_rule_extractor = FallbackRuleExtractor()
+    rule_extractor = HuggingFaceRuleExtractor(fallback_rule_extractor)
     summary_generator = HuggingFaceSummaryGenerator()
     bordereaux_reader = CsvBordereauxReader()
     report_writer = CsvExceptionReportWriter()
     return AppContainer(
         config=config,
         pdf_text_extractor=pdf_extractor,
+        fallback_rule_extractor=fallback_rule_extractor,
         rule_extractor=rule_extractor,
         summary_generator=summary_generator,
         bordereaux_reader=bordereaux_reader,
