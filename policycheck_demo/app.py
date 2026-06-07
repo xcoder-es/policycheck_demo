@@ -21,6 +21,7 @@ from .bordereaux import (
     validate_bordereaux,
 )
 from .checker import check_bordereau_delays, check_policy_against_baa
+from .dashboard import build_dashboard_data
 from .models import BAA, Policy
 from .pdf_utils import extract_text_from_pdf_bytes
 
@@ -28,14 +29,29 @@ app = FastAPI()
 app.mount("/static", StaticFiles(directory=str(Path(__file__).parent / "static")), name="static")
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 
-BAA_FORM_KEYS = ["baa_name", "baa_start_date", "baa_end_date", "baa_territory", "baa_class", "baa_authority_limit", "baa_endorsements", "baa_text"]
+BAA_FORM_KEYS = [
+    "baa_name",
+    "baa_start_date",
+    "baa_end_date",
+    "baa_territory",
+    "baa_class",
+    "baa_authority_limit",
+    "baa_endorsements",
+    "baa_text",
+]
 
 
 def empty_baa_form() -> Dict[str, str]:
     return {key: "" for key in BAA_FORM_KEYS}
 
 
-def index_context(baa_form=None, baa_extraction_message=None, baa_extraction_error=None, bordereaux_errors=None, bordereaux_warnings=None):
+def index_context(
+    baa_form=None,
+    baa_extraction_message=None,
+    baa_extraction_error=None,
+    bordereaux_errors=None,
+    bordereaux_warnings=None,
+):
     return {
         "baa_form": baa_form or empty_baa_form(),
         "baa_extraction_message": baa_extraction_message,
@@ -47,7 +63,16 @@ def index_context(baa_form=None, baa_extraction_message=None, baa_extraction_err
     }
 
 
-def form_from_baa_inputs(baa_name, baa_start_date, baa_end_date, baa_territory, baa_class, baa_authority_limit, baa_endorsements, baa_text):
+def form_from_baa_inputs(
+    baa_name,
+    baa_start_date,
+    baa_end_date,
+    baa_territory,
+    baa_class,
+    baa_authority_limit,
+    baa_endorsements,
+    baa_text,
+):
     return {
         "baa_name": baa_name or "",
         "baa_start_date": baa_start_date or "",
@@ -94,10 +119,26 @@ async def read_uploaded_document(file: Optional[UploadFile]) -> str:
     return content.decode("utf-8", errors="ignore")
 
 
-def parse_baa_inputs(name, start_date_str, end_date_str, territory_str, class_str, authority_limit_str, endorsements_str, baa_text) -> BAA:
+def parse_baa_inputs(
+    name,
+    start_date_str,
+    end_date_str,
+    territory_str,
+    class_str,
+    authority_limit_str,
+    endorsements_str,
+    baa_text,
+) -> BAA:
     text = baa_text or ""
     name = name or "Uploaded BAA"
-    if text and (not start_date_str or not end_date_str or not territory_str or not class_str or not authority_limit_str or not endorsements_str):
+    if text and (
+        not start_date_str
+        or not end_date_str
+        or not territory_str
+        or not class_str
+        or not authority_limit_str
+        or not endorsements_str
+    ):
         extracted = extract_fields_from_baa(text)
         if (not name or name == "Uploaded BAA") and extracted.get("agreement_name"):
             name = str(extracted["agreement_name"])
@@ -115,17 +156,33 @@ def parse_baa_inputs(name, start_date_str, end_date_str, territory_str, class_st
             endorsements_str = ", ".join(extracted["required_endorsements"])
     start_date = datetime.strptime(start_date_str, "%Y-%m-%d") if start_date_str else datetime.now()
     end_date = datetime.strptime(end_date_str, "%Y-%m-%d") if end_date_str else datetime.now()
-    territory = [t.strip() for t in territory_str.split(",") if t.strip()] if territory_str else []
-    class_of_business = [c.strip() for c in class_str.split(",") if c.strip()] if class_str else []
+    territory = [item.strip() for item in territory_str.split(",") if item.strip()] if territory_str else []
+    class_of_business = [item.strip() for item in class_str.split(",") if item.strip()] if class_str else []
     try:
         authority_limit = float(authority_limit_str.replace(",", "")) if authority_limit_str else 0.0
     except Exception:
         authority_limit = 0.0
-    endorsements = [e.strip() for e in endorsements_str.split(",") if e.strip()] if endorsements_str else []
-    return BAA(name=name, start_date=start_date, end_date=end_date, territory=territory, class_of_business=class_of_business, authority_limit=authority_limit, required_endorsements=endorsements)
+    endorsements = [item.strip() for item in endorsements_str.split(",") if item.strip()] if endorsements_str else []
+    return BAA(
+        name=name,
+        start_date=start_date,
+        end_date=end_date,
+        territory=territory,
+        class_of_business=class_of_business,
+        authority_limit=authority_limit,
+        required_endorsements=endorsements,
+    )
 
 
-def parse_policy_inputs(policy_number, bind_date_str, territory, class_of_business, sum_insured_str, endorsements_str, policy_text) -> Policy:
+def parse_policy_inputs(
+    policy_number,
+    bind_date_str,
+    territory,
+    class_of_business,
+    sum_insured_str,
+    endorsements_str,
+    policy_text,
+) -> Policy:
     policy_number = policy_number or "Policy"
     if policy_text and (not bind_date_str or not territory or not class_of_business or not sum_insured_str):
         extracted = extract_policy_fields(policy_text)
@@ -144,8 +201,16 @@ def parse_policy_inputs(policy_number, bind_date_str, territory, class_of_busine
         sum_insured = float(sum_insured_str.replace(",", "")) if sum_insured_str else 0.0
     except Exception:
         sum_insured = 0.0
-    endorsements = [e.strip() for e in endorsements_str.split(",") if e.strip()] if endorsements_str else []
-    return Policy(policy_number=policy_number, bind_date=bind_date, territory=territory or "", class_of_business=class_of_business or "", sum_insured=sum_insured, endorsements=endorsements, text=policy_text)
+    endorsements = [item.strip() for item in endorsements_str.split(",") if item.strip()] if endorsements_str else []
+    return Policy(
+        policy_number=policy_number,
+        bind_date=bind_date,
+        territory=territory or "",
+        class_of_business=class_of_business or "",
+        sum_insured=sum_insured,
+        endorsements=endorsements,
+        text=policy_text,
+    )
 
 
 def build_baa_from_form_values(*values) -> BAA:
@@ -157,13 +222,35 @@ def render_mass_results(request: Request, baa: BAA, rows: List[Dict[str, str]], 
     metrics = validation["metrics"]
     fallback_summary = deterministic_portfolio_summary(metrics)
     executive_summary = generate_portfolio_summary(metrics, fallback_summary)
+    summary_source = "Deterministic fallback" if executive_summary == fallback_summary else "AI-assisted summary"
     report_csv = generate_exception_report_csv(validation["rows"])
-    return templates.TemplateResponse(request, "mass_results.html", {"baa": baa, "rows": validation["rows"], "metrics": metrics, "executive_summary": executive_summary, "source_label": source_label, "parse_warnings": parse_warnings or [], "report_csv": report_csv, "bordereaux_json": rows_to_json(rows)})
+    dashboard_data = build_dashboard_data(validation["rows"], metrics)
+    return templates.TemplateResponse(
+        request,
+        "mass_results.html",
+        {
+            "baa": baa,
+            "rows": validation["rows"],
+            "metrics": metrics,
+            "executive_summary": executive_summary,
+            "summary_source": summary_source,
+            "dashboard_data": dashboard_data,
+            "source_label": source_label,
+            "parse_warnings": parse_warnings or [],
+            "report_csv": report_csv,
+            "bordereaux_json": rows_to_json(rows),
+        },
+    )
 
 
 @app.get("/", response_class=HTMLResponse)
 async def get_index(request: Request):
     return templates.TemplateResponse(request, "index.html", index_context())
+
+
+@app.get("/how-it-works", response_class=HTMLResponse)
+async def how_it_works(request: Request):
+    return templates.TemplateResponse(request, "how_it_works.html", {})
 
 
 @app.post("/extract-baa", response_class=HTMLResponse)
@@ -172,15 +259,44 @@ async def extract_baa(request: Request, baa_file: UploadFile = File(None)) -> HT
     try:
         baa_text = await read_uploaded_document(baa_file)
     except Exception as exc:
-        return templates.TemplateResponse(request, "index.html", index_context(baa_form=baa_form, baa_extraction_error=f"Could not read that BAA file: {exc}"))
+        return templates.TemplateResponse(
+            request,
+            "index.html",
+            index_context(baa_form=baa_form, baa_extraction_error=f"Could not read that BAA file: {exc}"),
+        )
     if not baa_text.strip():
-        return templates.TemplateResponse(request, "index.html", index_context(baa_form=baa_form, baa_extraction_error="No text could be extracted. Please upload a text-based PDF or paste the BAA text manually."))
+        return templates.TemplateResponse(
+            request,
+            "index.html",
+            index_context(
+                baa_form=baa_form,
+                baa_extraction_error="No text could be extracted. Please upload a text-based PDF or paste the BAA text manually.",
+            ),
+        )
     baa_form = build_baa_form_from_extraction(baa_text, baa_file.filename if baa_file else None)
-    return templates.TemplateResponse(request, "index.html", index_context(baa_form=baa_form, baa_extraction_message="BAA rules extracted. Review and edit the fields below before generating the digital twin."))
+    return templates.TemplateResponse(
+        request,
+        "index.html",
+        index_context(
+            baa_form=baa_form,
+            baa_extraction_message="BAA rules extracted. Review and edit the fields below before generating the digital twin.",
+        ),
+    )
 
 
 @app.post("/generate-bordereaux", response_class=HTMLResponse)
-async def generate_bordereaux(request: Request, baa_name: Optional[str] = Form(None), baa_start_date: Optional[str] = Form(None), baa_end_date: Optional[str] = Form(None), baa_territory: Optional[str] = Form(None), baa_class: Optional[str] = Form(None), baa_authority_limit: Optional[str] = Form(None), baa_endorsements: Optional[str] = Form(None), baa_text: Optional[str] = Form(None), row_count: int = Form(DEFAULT_SYNTHETIC_ROWS)) -> HTMLResponse:
+async def generate_bordereaux(
+    request: Request,
+    baa_name: Optional[str] = Form(None),
+    baa_start_date: Optional[str] = Form(None),
+    baa_end_date: Optional[str] = Form(None),
+    baa_territory: Optional[str] = Form(None),
+    baa_class: Optional[str] = Form(None),
+    baa_authority_limit: Optional[str] = Form(None),
+    baa_endorsements: Optional[str] = Form(None),
+    baa_text: Optional[str] = Form(None),
+    row_count: int = Form(DEFAULT_SYNTHETIC_ROWS),
+) -> HTMLResponse:
     baa_form = form_from_baa_inputs(baa_name, baa_start_date, baa_end_date, baa_territory, baa_class, baa_authority_limit, baa_endorsements, baa_text)
     try:
         baa = build_baa_from_form_values(baa_name, baa_start_date, baa_end_date, baa_territory, baa_class, baa_authority_limit, baa_endorsements, baa_text)
@@ -191,7 +307,18 @@ async def generate_bordereaux(request: Request, baa_name: Optional[str] = Form(N
 
 
 @app.post("/upload-bordereaux", response_class=HTMLResponse)
-async def upload_bordereaux(request: Request, baa_name: Optional[str] = Form(None), baa_start_date: Optional[str] = Form(None), baa_end_date: Optional[str] = Form(None), baa_territory: Optional[str] = Form(None), baa_class: Optional[str] = Form(None), baa_authority_limit: Optional[str] = Form(None), baa_endorsements: Optional[str] = Form(None), baa_text: Optional[str] = Form(None), bordereaux_file: UploadFile = File(None)) -> HTMLResponse:
+async def upload_bordereaux(
+    request: Request,
+    baa_name: Optional[str] = Form(None),
+    baa_start_date: Optional[str] = Form(None),
+    baa_end_date: Optional[str] = Form(None),
+    baa_territory: Optional[str] = Form(None),
+    baa_class: Optional[str] = Form(None),
+    baa_authority_limit: Optional[str] = Form(None),
+    baa_endorsements: Optional[str] = Form(None),
+    baa_text: Optional[str] = Form(None),
+    bordereaux_file: UploadFile = File(None),
+) -> HTMLResponse:
     baa_form = form_from_baa_inputs(baa_name, baa_start_date, baa_end_date, baa_territory, baa_class, baa_authority_limit, baa_endorsements, baa_text)
     try:
         baa = build_baa_from_form_values(baa_name, baa_start_date, baa_end_date, baa_territory, baa_class, baa_authority_limit, baa_endorsements, baa_text)
@@ -206,7 +333,18 @@ async def upload_bordereaux(request: Request, baa_name: Optional[str] = Form(Non
 
 
 @app.post("/validate-bordereaux", response_class=HTMLResponse)
-async def validate_existing_bordereaux(request: Request, baa_name: Optional[str] = Form(None), baa_start_date: Optional[str] = Form(None), baa_end_date: Optional[str] = Form(None), baa_territory: Optional[str] = Form(None), baa_class: Optional[str] = Form(None), baa_authority_limit: Optional[str] = Form(None), baa_endorsements: Optional[str] = Form(None), baa_text: Optional[str] = Form(None), bordereaux_json: str = Form("")) -> HTMLResponse:
+async def validate_existing_bordereaux(
+    request: Request,
+    baa_name: Optional[str] = Form(None),
+    baa_start_date: Optional[str] = Form(None),
+    baa_end_date: Optional[str] = Form(None),
+    baa_territory: Optional[str] = Form(None),
+    baa_class: Optional[str] = Form(None),
+    baa_authority_limit: Optional[str] = Form(None),
+    baa_endorsements: Optional[str] = Form(None),
+    baa_text: Optional[str] = Form(None),
+    bordereaux_json: str = Form(""),
+) -> HTMLResponse:
     baa = build_baa_from_form_values(baa_name, baa_start_date, baa_end_date, baa_territory, baa_class, baa_authority_limit, baa_endorsements, baa_text)
     rows = rows_from_json(bordereaux_json)
     return render_mass_results(request, baa, rows, "Revalidated portfolio")
@@ -219,7 +357,39 @@ async def download_report(report_csv: str = Form(...)) -> StreamingResponse:
 
 
 @app.post("/process", response_class=HTMLResponse)
-async def process(request: Request, baa_name: Optional[str] = Form(None), baa_start_date: Optional[str] = Form(None), baa_end_date: Optional[str] = Form(None), baa_territory: Optional[str] = Form(None), baa_class: Optional[str] = Form(None), baa_authority_limit: Optional[str] = Form(None), baa_endorsements: Optional[str] = Form(None), baa_text: Optional[str] = Form(None), baa_file: UploadFile = File(None), policy1_number: Optional[str] = Form(None), policy1_bind_date: Optional[str] = Form(None), policy1_territory: Optional[str] = Form(None), policy1_class: Optional[str] = Form(None), policy1_sum_insured: Optional[str] = Form(None), policy1_endorsements: Optional[str] = Form(None), policy1_file: UploadFile = File(None), policy2_number: Optional[str] = Form(None), policy2_bind_date: Optional[str] = Form(None), policy2_territory: Optional[str] = Form(None), policy2_class: Optional[str] = Form(None), policy2_sum_insured: Optional[str] = Form(None), policy2_endorsements: Optional[str] = Form(None), policy2_file: UploadFile = File(None), policy3_number: Optional[str] = Form(None), policy3_bind_date: Optional[str] = Form(None), policy3_territory: Optional[str] = Form(None), policy3_class: Optional[str] = Form(None), policy3_sum_insured: Optional[str] = Form(None), policy3_endorsements: Optional[str] = Form(None), policy3_file: UploadFile = File(None)) -> HTMLResponse:
+async def process(
+    request: Request,
+    baa_name: Optional[str] = Form(None),
+    baa_start_date: Optional[str] = Form(None),
+    baa_end_date: Optional[str] = Form(None),
+    baa_territory: Optional[str] = Form(None),
+    baa_class: Optional[str] = Form(None),
+    baa_authority_limit: Optional[str] = Form(None),
+    baa_endorsements: Optional[str] = Form(None),
+    baa_text: Optional[str] = Form(None),
+    baa_file: UploadFile = File(None),
+    policy1_number: Optional[str] = Form(None),
+    policy1_bind_date: Optional[str] = Form(None),
+    policy1_territory: Optional[str] = Form(None),
+    policy1_class: Optional[str] = Form(None),
+    policy1_sum_insured: Optional[str] = Form(None),
+    policy1_endorsements: Optional[str] = Form(None),
+    policy1_file: UploadFile = File(None),
+    policy2_number: Optional[str] = Form(None),
+    policy2_bind_date: Optional[str] = Form(None),
+    policy2_territory: Optional[str] = Form(None),
+    policy2_class: Optional[str] = Form(None),
+    policy2_sum_insured: Optional[str] = Form(None),
+    policy2_endorsements: Optional[str] = Form(None),
+    policy2_file: UploadFile = File(None),
+    policy3_number: Optional[str] = Form(None),
+    policy3_bind_date: Optional[str] = Form(None),
+    policy3_territory: Optional[str] = Form(None),
+    policy3_class: Optional[str] = Form(None),
+    policy3_sum_insured: Optional[str] = Form(None),
+    policy3_endorsements: Optional[str] = Form(None),
+    policy3_file: UploadFile = File(None),
+) -> HTMLResponse:
     try:
         uploaded_baa_text = await read_uploaded_document(baa_file)
     except Exception:
