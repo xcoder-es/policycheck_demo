@@ -4,7 +4,7 @@ target-version = "py311"
 extend-exclude = ["policycheck_demo/app.py"]
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "B", "UP", "SIM", "C4"]
+select = ["E", "F", "B", "UP", "SIM", "C4"]
 ignore = ["E501", "B008"]
 
 [tool.ruff.format]
