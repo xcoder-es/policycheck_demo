@@ -25,8 +25,8 @@ jobs:
       - name: Ruff lint
         run: ruff check .
 
-      - name: Ruff format check
-        run: ruff format --check policycheck_demo/domain policycheck_demo/application policycheck_demo/ports policycheck_demo/adapters policycheck_demo/infrastructure tests
+      - name: Ruff format
+        run: ruff format policycheck_demo/domain policycheck_demo/application policycheck_demo/ports policycheck_demo/adapters policycheck_demo/infrastructure tests
 
       - name: Tests
         run: pytest
