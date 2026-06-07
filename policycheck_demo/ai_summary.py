@@ -10,7 +10,7 @@ logger = logging.getLogger("policycheck.ai.summary")
 HF_LEGACY_URL = "https://api-inference.huggingface.co/models/google/flan-t5-small"
 HF_ROUTER_URL = "https://router.huggingface.co/v1/chat/completions"
 HF_TOKEN_ENV_NAMES = ("HF_TOKEN", "HUGGINGFACE_API_TOKEN", "HUGGING_FACE_HUB_TOKEN")
-DEFAULT_HF_SUMMARY_MODEL = "google/gemma-2-2b-it"
+DEFAULT_HF_SUMMARY_MODEL = "deepseek-ai/DeepSeek-V4-Pro"
 
 
 def _timeout_seconds() -> float:
