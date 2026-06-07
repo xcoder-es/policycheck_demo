@@ -12,6 +12,7 @@ def test_core_routes_exist() -> None:
 
     paths = {route.path for route in app.routes}
     assert "/" in paths
+    assert "/how-it-works" in paths
     assert "/extract-baa" in paths
     assert "/process" in paths
     assert "/generate-bordereaux" in paths
