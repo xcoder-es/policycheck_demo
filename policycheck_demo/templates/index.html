@@ -21,7 +21,8 @@
         <span class="brand-copy"><strong>PolicyCheck</strong><small>Digital Twin POC</small></span>
       </a>
       <nav class="nav-links" aria-label="Demo navigation">
-        <a href="#workflow">How it works</a>
+        <a href="{{ url_for('how_it_works') }}">How it works</a>
+        <a href="#workflow">Workflow</a>
         <a href="#demo">BAA Digital Twin</a>
         <a href="#portfolio">Bordereaux</a>
         <a href="#policies">Policy checks</a>
@@ -38,7 +39,7 @@
           <p class="hero-subtitle">Create a BAA digital twin, validate individual policies and run portfolio-level bordereaux checks with audit-friendly exception intelligence.</p>
           <div class="hero-actions" aria-label="Primary actions">
             <a class="btn btn-primary" href="#demo">Request a demo</a>
-            <a class="btn btn-secondary" href="#workflow">See how it works</a>
+            <a class="btn btn-secondary" href="{{ url_for('how_it_works') }}">See how it works</a>
           </div>
         </div>
         <aside class="hero-card" aria-label="Demo capability preview">
@@ -106,59 +107,17 @@
           </div>
 
           <div id="portfolio" class="form-divider portfolio-panel" aria-labelledby="portfolio-title">
-            <div class="portfolio-copy">
-              <p class="eyebrow">Step 2</p>
-              <h2 id="portfolio-title">Portfolio Bordereaux</h2>
-              <p>Upload a bordereaux CSV or generate a synthetic portfolio to test mass validation without real customer data.</p>
-            </div>
-            <div class="portfolio-actions-grid">
-              <div class="portfolio-card">
-                <h3>Upload bordereaux CSV</h3>
-                <p>Supports common column names such as policy_number, policy no, inception_date, risk_country, class, limit and clauses.</p>
-                <label class="field-label"><span>Bordereaux CSV</span><input type="file" name="bordereaux_file" accept=".csv,text/csv"></label>
-                <button type="submit" class="btn btn-secondary" formaction="{{ url_for('upload_bordereaux') }}" formmethod="post">Upload and validate CSV</button>
-              </div>
-              <div class="portfolio-card">
-                <h3>Generate test portfolio</h3>
-                <p>Create a synthetic bordereaux with a realistic mix of compliant policies, warnings and authority breaches.</p>
-                <label class="field-label"><span>Portfolio size</span><select name="row_count" class="select-input">{% for count in allowed_row_counts %}<option value="{{ count }}" {% if count == default_row_count %}selected{% endif %}>{{ count }} policies</option>{% endfor %}</select></label>
-                <button type="submit" class="btn btn-primary" formaction="{{ url_for('generate_bordereaux') }}" formmethod="post">Generate synthetic bordereaux</button>
-              </div>
-            </div>
+            <div class="portfolio-copy"><p class="eyebrow">Step 2</p><h2 id="portfolio-title">Portfolio Bordereaux</h2><p>Upload a bordereaux CSV or generate a synthetic portfolio to test mass validation without real customer data.</p></div>
+            <div class="portfolio-actions-grid"><div class="portfolio-card"><h3>Upload bordereaux CSV</h3><p>Supports common column names such as policy_number, policy no, inception_date, risk_country, class, limit and clauses.</p><label class="field-label"><span>Bordereaux CSV</span><input type="file" name="bordereaux_file" accept=".csv,text/csv"></label><button type="submit" class="btn btn-secondary" formaction="{{ url_for('upload_bordereaux') }}" formmethod="post">Upload and validate CSV</button></div><div class="portfolio-card"><h3>Generate test portfolio</h3><p>Create a synthetic bordereaux with a realistic mix of compliant policies, warnings and authority breaches.</p><label class="field-label"><span>Portfolio size</span><select name="row_count" class="select-input">{% for count in allowed_row_counts %}<option value="{{ count }}" {% if count == default_row_count %}selected{% endif %}>{{ count }} policies</option>{% endfor %}</select></label><button type="submit" class="btn btn-primary" formaction="{{ url_for('generate_bordereaux') }}" formmethod="post">Generate synthetic bordereaux</button></div></div>
           </div>
 
-          <div id="policies" class="form-divider">
-            <p class="eyebrow">Optional individual checks</p>
-            <h2>Policy Validation</h2>
-            <p>For quick single-policy demos, upload up to three policies or enter their structured details manually.</p>
-          </div>
-
-          <div class="policy-stack">
-            {% for i in range(1, 4) %}
-            <fieldset class="policy-box">
-              <legend>Policy {{ i }}</legend>
-              <div class="grid form-grid">
-                <label class="field-label"><span>Number</span><input type="text" name="policy{{ i }}_number" placeholder="PC00{{ i }}"></label>
-                <label class="field-label"><span>Bind Date</span><input type="date" name="policy{{ i }}_bind_date"></label>
-                <label class="field-label"><span>Territory</span><input type="text" name="policy{{ i }}_territory" placeholder="Spain"></label>
-                <label class="field-label"><span>Class of Business</span><input type="text" name="policy{{ i }}_class" placeholder="Property"></label>
-                <label class="field-label"><span>Sum Insured</span><input type="text" name="policy{{ i }}_sum_insured" placeholder="1500000"></label>
-                <label class="field-label"><span>Endorsements</span><input type="text" name="policy{{ i }}_endorsements" placeholder="Sanctions Clause, Cyber Exclusion"></label>
-                <label class="field-label full-width"><span>Policy Document</span><input type="file" name="policy{{ i }}_file" accept=".txt,text/plain,.pdf,application/pdf"></label>
-              </div>
-            </fieldset>
-            {% endfor %}
-          </div>
-
-          <div class="form-actions">
-            <button type="submit" class="btn btn-primary">Generate Individual Policy Check</button>
-            <p>No data is stored. This POC keeps validation lightweight and session-based.</p>
-          </div>
+          <div id="policies" class="form-divider"><p class="eyebrow">Optional individual checks</p><h2>Policy Validation</h2><p>For quick single-policy demos, upload up to three policies or enter their structured details manually.</p></div>
+          <div class="policy-stack">{% for i in range(1, 4) %}<fieldset class="policy-box"><legend>Policy {{ i }}</legend><div class="grid form-grid"><label class="field-label"><span>Number</span><input type="text" name="policy{{ i }}_number" placeholder="PC00{{ i }}"></label><label class="field-label"><span>Bind Date</span><input type="date" name="policy{{ i }}_bind_date"></label><label class="field-label"><span>Territory</span><input type="text" name="policy{{ i }}_territory" placeholder="Spain"></label><label class="field-label"><span>Class of Business</span><input type="text" name="policy{{ i }}_class" placeholder="Property"></label><label class="field-label"><span>Sum Insured</span><input type="text" name="policy{{ i }}_sum_insured" placeholder="1500000"></label><label class="field-label"><span>Endorsements</span><input type="text" name="policy{{ i }}_endorsements" placeholder="Sanctions Clause, Cyber Exclusion"></label><label class="field-label full-width"><span>Policy Document</span><input type="file" name="policy{{ i }}_file" accept=".txt,text/plain,.pdf,application/pdf"></label></div></fieldset>{% endfor %}</div>
+          <div class="form-actions"><button type="submit" class="btn btn-primary">Generate Individual Policy Check</button><p>No data is stored. This POC keeps validation lightweight and session-based.</p></div>
         </form>
       </div>
     </section>
   </main>
-
   <footer class="site-footer"><div class="shell footer-shell"><p>PolicyCheck demo for illustrative purposes only.</p><p>Operational intelligence for insurance workflows.</p></div></footer>
 </body>
 </html>
