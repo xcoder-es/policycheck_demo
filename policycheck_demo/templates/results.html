@@ -8,12 +8,15 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', path='/accessibility.css') }}">
 </head>
 <body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
   <header class="site-header" aria-label="Primary navigation">
     <div class="shell nav-shell">
       <a href="{{ url_for('get_index') }}" class="brand" aria-label="PolicyCheck demo home">
-        <span class="brand-mark">✓</span>
+        <span class="brand-mark" aria-hidden="true">✓</span>
         <span class="brand-copy">
           <strong>PolicyCheck</strong>
           <small>Digital Twin POC</small>
@@ -27,20 +30,20 @@
     </div>
   </header>
 
-  <main>
+  <main id="main-content" tabindex="-1">
     <section class="hero hero-compact" aria-labelledby="results-title">
       <div class="shell hero-grid">
         <div class="hero-copy">
           <p class="eyebrow">Digital twin results</p>
           <h1 id="results-title">Validation outcomes, ready for review</h1>
           <p class="hero-subtitle">Your Binding Authority Agreement and policies have been processed. Review authority, territory, wording and reporting findings below.</p>
-          <div class="hero-actions">
+          <div class="hero-actions" aria-label="Result actions">
             <a href="{{ url_for('get_index') }}#demo" class="btn btn-primary">Run another check</a>
             <a href="#policies" class="btn btn-secondary">View policy cards</a>
           </div>
         </div>
         <aside class="hero-card results-card" aria-label="Result overview">
-          <div class="status-pill"><span></span> Review required</div>
+          <div class="status-pill"><span aria-hidden="true"></span> Review required</div>
           <h2>{{ results|length }} policies processed</h2>
           <p>Each policy is presented as a decision card with clear pass or fail indicators.</p>
         </aside>
@@ -93,11 +96,11 @@
           </div>
 
           {% for item in results %}
-          <article class="policy-result-card {% if item.issues %}has-issues{% else %}is-clear{% endif %}">
+          <article class="policy-result-card {% if item.issues %}has-issues{% else %}is-clear{% endif %}" aria-labelledby="policy-title-{{ loop.index }}">
             <div class="policy-result-header">
               <div class="result-icon" aria-hidden="true">{% if item.issues %}×{% else %}✓{% endif %}</div>
               <div>
-                <h3>{{ item.policy.policy_number }}</h3>
+                <h3 id="policy-title-{{ loop.index }}">{{ item.policy.policy_number }}</h3>
                 {% if item.issues %}
                 <p>{{ item.issues|length }} issue{% if item.issues|length != 1 %}s{% endif %} detected</p>
                 {% else %}
@@ -135,7 +138,7 @@
             </dl>
 
             {% if item.issues %}
-            <div class="issues-panel">
+            <div class="issues-panel" role="status">
               <h4>Issues to review</h4>
               <ul>
                 {% for issue in item.issues %}
@@ -144,7 +147,7 @@
               </ul>
             </div>
             {% else %}
-            <div class="clear-panel">
+            <div class="clear-panel" role="status">
               <span aria-hidden="true">✓</span>
               <p>This policy is aligned with the reviewed BAA rule set.</p>
             </div>
