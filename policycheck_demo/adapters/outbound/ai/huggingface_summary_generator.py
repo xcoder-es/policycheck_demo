@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from policycheck_demo.ai_utils import generate_portfolio_summary
+from policycheck_demo.ai_summary import generate_logged_portfolio_summary
 from policycheck_demo.domain.validation.models import PortfolioValidationSummary
 
 
@@ -17,4 +17,4 @@ class HuggingFaceSummaryGenerator:
             "most_common_issue": summary.most_common_issue,
             "percentage_compliant": summary.compliance_percentage,
         }
-        return generate_portfolio_summary(metrics, fallback)
+        return str(generate_logged_portfolio_summary(metrics, fallback)["summary"])
