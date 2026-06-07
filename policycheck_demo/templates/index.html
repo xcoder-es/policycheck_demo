@@ -3,10 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Digital Twin Demo – PolicyCheck POC</title>
+  <title>Digital Twin Demo - PolicyCheck POC</title>
   <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}">
   <style>
-    /* Import Google Font if available; fall back to sans-serif */
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
   </style>
 </head>
@@ -20,42 +19,66 @@
   <main class="container">
     <form action="{{ url_for('process') }}" method="post" enctype="multipart/form-data" class="form-box">
       <h2>Binding Authority Agreement</h2>
+      <p class="helper-text">Upload a text-based BAA PDF to extract the rules, then review and edit the structured fields before validation.</p>
+
+      {% if baa_extraction_message %}
+      <div class="notice success">{{ baa_extraction_message }}</div>
+      {% endif %}
+      {% if baa_extraction_error %}
+      <div class="notice error">{{ baa_extraction_error }}</div>
+      {% endif %}
+
+      <div class="upload-panel">
+        <label>
+          BAA PDF or text file
+          <input type="file" name="baa_file" accept=".pdf,application/pdf,.txt,text/plain" />
+        </label>
+        <button type="submit" class="btn secondary" formaction="{{ url_for('extract_baa') }}" formmethod="post">
+          Extract BAA Rules
+        </button>
+      </div>
+
+      <div class="review-banner">
+        Human review step: extraction is a draft. Confirm the fields below before generating the digital twin.
+      </div>
+
       <div class="grid">
         <label>
-          Name
-          <input type="text" name="baa_name" placeholder="BAA name" />
+          Agreement Name
+          <input type="text" name="baa_name" placeholder="BAA name" value="{{ baa_form.baa_name }}" />
         </label>
         <label>
           Start Date
-          <input type="date" name="baa_start_date" />
+          <input type="date" name="baa_start_date" value="{{ baa_form.baa_start_date }}" />
         </label>
         <label>
           End Date
-          <input type="date" name="baa_end_date" />
+          <input type="date" name="baa_end_date" value="{{ baa_form.baa_end_date }}" />
         </label>
         <label>
-          Territory (comma‑separated)
-          <input type="text" name="baa_territory" placeholder="Spain, Portugal, France" />
+          Territories (comma-separated)
+          <input type="text" name="baa_territory" placeholder="Spain, Portugal, France" value="{{ baa_form.baa_territory }}" />
         </label>
         <label>
-          Classes of Business (comma‑separated)
-          <input type="text" name="baa_class" placeholder="Property, Casualty" />
+          Classes of Business (comma-separated)
+          <input type="text" name="baa_class" placeholder="Property, Casualty" value="{{ baa_form.baa_class }}" />
         </label>
         <label>
           Authority Limit
-          <input type="text" name="baa_authority_limit" placeholder="2000000" />
+          <input type="text" name="baa_authority_limit" placeholder="2000000" value="{{ baa_form.baa_authority_limit }}" />
         </label>
         <label>
-          Required Endorsements (comma‑separated)
-          <input type="text" name="baa_endorsements" placeholder="Sanctions Clause, Cyber Exclusion" />
+          Required Endorsements (comma-separated)
+          <input type="text" name="baa_endorsements" placeholder="Sanctions Clause, Cyber Exclusion" value="{{ baa_form.baa_endorsements }}" />
         </label>
         <label class="full-width">
-          BAA Text (optional – AI will extract missing fields)
-          <textarea name="baa_text" rows="4" placeholder="Paste BAA document text here"></textarea>
+          BAA Text (optional - extracted text appears here for review)
+          <textarea name="baa_text" rows="5" placeholder="Paste BAA document text here">{{ baa_form.baa_text }}</textarea>
         </label>
       </div>
+
       <h2>Policies</h2>
-      <p>You can upload up to three policies.  If you omit some fields but provide a policy document, the AI will attempt to extract them.</p>
+      <p>You can upload up to three policies. If you omit some fields but provide a policy document, the AI will attempt to extract them.</p>
       {% for i in range(1, 4) %}
       <fieldset class="policy-box">
         <legend>Policy {{ i }}</legend>
@@ -85,8 +108,8 @@
             <input type="text" name="policy{{ i }}_endorsements" placeholder="Sanctions Clause, Cyber Exclusion" />
           </label>
           <label class="full-width">
-            Policy Document (txt)
-            <input type="file" name="policy{{ i }}_file" accept=".txt" />
+            Policy Document (txt or text-based PDF)
+            <input type="file" name="policy{{ i }}_file" accept=".txt,text/plain,.pdf,application/pdf" />
           </label>
         </div>
       </fieldset>
@@ -96,7 +119,7 @@
   </main>
   <footer>
     <div class="container">
-      <p>Demo for illustrative purposes only.  No data is stored.</p>
+      <p>Demo for illustrative purposes only. No data is stored.</p>
     </div>
   </footer>
 </body>
