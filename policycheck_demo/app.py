@@ -2,44 +2,101 @@
 FastAPI application for the PolicyCheck digital twin POC.
 
 This module defines a small web application that allows users to
-describe a Binding Authority Agreement (BAA) and up to three
-policies, either by providing structured form fields or by
-uploading plain‑text documents.  It then performs AI‑assisted
-extraction of missing fields, validates the policies against the
-agreement, and renders the results using Jinja2 templates.
-
-The application relies on FastAPI and Uvicorn rather than Flask, as
-FastAPI is pre‑installed in the execution environment.  To run the
-app locally, execute:
-
-    uvicorn policycheck_demo.app:app --reload
-
-The ``--reload`` flag reloads the server on code changes.  Navigate
-to http://127.0.0.1:8000/ in your browser.
+describe a Binding Authority Agreement (BAA) and up to three policies,
+either by providing structured form fields or by uploading documents.
+It then performs AI-assisted extraction of missing fields, validates
+the policies against the agreement, and renders the results using
+Jinja2 templates.
 """
 
-import io
 from datetime import datetime
+from pathlib import Path
 from typing import Dict, List, Optional
 
-from fastapi import FastAPI, Form, UploadFile, File, Request
+from fastapi import FastAPI, File, Form, Request, UploadFile
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from .models import BAA, Policy
 from .ai_utils import extract_fields_from_baa, extract_policy_fields
-from .checker import check_policy_against_baa, check_bordereau_delays
+from .checker import check_bordereau_delays, check_policy_against_baa
+from .models import BAA, Policy
+from .pdf_utils import extract_text_from_pdf_bytes
 
 
 app = FastAPI()
 
 # Mount static files (CSS)
 app.mount(
-    "/static", StaticFiles(directory=str(__import__('pathlib').Path(__file__).parent / "static")), name="static"
+    "/static",
+    StaticFiles(directory=str(Path(__file__).parent / "static")),
+    name="static",
 )
 
-templates = Jinja2Templates(directory=str(__import__('pathlib').Path(__file__).parent / "templates"))
+templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
+
+
+BAA_FORM_KEYS = [
+    "baa_name",
+    "baa_start_date",
+    "baa_end_date",
+    "baa_territory",
+    "baa_class",
+    "baa_authority_limit",
+    "baa_endorsements",
+    "baa_text",
+]
+
+
+def empty_baa_form() -> Dict[str, str]:
+    """Return the template context expected by the BAA form."""
+    return {key: "" for key in BAA_FORM_KEYS}
+
+
+def format_date_value(value: object) -> str:
+    """Format extracted dates for HTML date inputs."""
+    if isinstance(value, datetime):
+        return value.strftime("%Y-%m-%d")
+    return ""
+
+
+def build_baa_form_from_extraction(text: str, filename: Optional[str] = None) -> Dict[str, str]:
+    """Build editable BAA form values from extracted PDF/plain-text content."""
+    extracted = extract_fields_from_baa(text)
+    form = empty_baa_form()
+    form["baa_name"] = str(extracted.get("agreement_name") or filename or "Uploaded BAA")
+    form["baa_start_date"] = format_date_value(extracted.get("start_date"))
+    form["baa_end_date"] = format_date_value(extracted.get("end_date"))
+    form["baa_territory"] = ", ".join(extracted.get("territory") or [])
+    form["baa_class"] = ", ".join(extracted.get("class_of_business") or [])
+    authority_limit = extracted.get("authority_limit")
+    form["baa_authority_limit"] = str(int(authority_limit)) if authority_limit else ""
+    form["baa_endorsements"] = ", ".join(extracted.get("required_endorsements") or [])
+    form["baa_text"] = text
+    return form
+
+
+async def read_uploaded_document(file: Optional[UploadFile]) -> str:
+    """Read a lightweight text-based upload.
+
+    Supports text files and text-based PDFs. It intentionally does not perform
+    OCR, image analysis, or model-based parsing so the demo remains stable on
+    Render.
+    """
+    if not file or not file.filename:
+        return ""
+
+    content = await file.read()
+    if not content:
+        return ""
+
+    filename = file.filename.lower()
+    content_type = (file.content_type or "").lower()
+
+    if filename.endswith(".pdf") or content_type == "application/pdf":
+        return extract_text_from_pdf_bytes(content)
+
+    return content.decode("utf-8", errors="ignore")
 
 
 def parse_baa_inputs(
@@ -52,16 +109,26 @@ def parse_baa_inputs(
     endorsements_str: Optional[str],
     baa_text: Optional[str],
 ) -> BAA:
-    """Assemble a BAA instance from form inputs.
+    """Assemble a BAA instance from reviewed form inputs.
 
-    If any key fields are missing but textual content is provided, the
-    function invokes the AI extractor to attempt to fill them in.
+    If any key fields are still missing but textual content is provided, the
+    function invokes the lightweight extractor to attempt to fill them in.
     """
     text = baa_text or ""
     name = name or "Uploaded BAA"
-    # AI extraction
-    if text and (not start_date_str or not end_date_str or not territory_str or not class_str or not authority_limit_str):
+
+    if text and (
+        not name
+        or not start_date_str
+        or not end_date_str
+        or not territory_str
+        or not class_str
+        or not authority_limit_str
+        or not endorsements_str
+    ):
         extracted = extract_fields_from_baa(text)
+        if (not name or name == "Uploaded BAA") and extracted.get("agreement_name"):
+            name = str(extracted["agreement_name"])
         if not start_date_str and extracted.get("start_date"):
             start_date_str = extracted["start_date"].strftime("%Y-%m-%d")
         if not end_date_str and extracted.get("end_date"):
@@ -74,7 +141,7 @@ def parse_baa_inputs(
             authority_limit_str = str(int(extracted["authority_limit"]))
         if not endorsements_str and extracted.get("required_endorsements"):
             endorsements_str = ", ".join(extracted["required_endorsements"])
-    # Parse fields
+
     start_date = datetime.strptime(start_date_str, "%Y-%m-%d") if start_date_str else datetime.now()
     end_date = datetime.strptime(end_date_str, "%Y-%m-%d") if end_date_str else datetime.now()
     territory = [t.strip() for t in territory_str.split(",") if t.strip()] if territory_str else []
@@ -84,6 +151,7 @@ def parse_baa_inputs(
     except Exception:
         authority_limit = 0.0
     endorsements = [e.strip() for e in endorsements_str.split(",") if e.strip()] if endorsements_str else []
+
     return BAA(
         name=name,
         start_date=start_date,
@@ -106,7 +174,6 @@ def parse_policy_inputs(
 ) -> Policy:
     """Assemble a Policy instance from form inputs and optional text."""
     policy_number = policy_number or "Policy"
-    # AI extraction if needed
     if policy_text and (not bind_date_str or not territory or not class_of_business or not sum_insured_str):
         extracted = extract_policy_fields(policy_text)
         if not bind_date_str and extracted.get("bind_date"):
@@ -119,7 +186,7 @@ def parse_policy_inputs(
             sum_insured_str = str(int(extracted["sum_insured"]))
         if not endorsements_str and extracted.get("endorsements"):
             endorsements_str = ", ".join(extracted["endorsements"])
-    # Parse
+
     bind_date = datetime.strptime(bind_date_str, "%Y-%m-%d") if bind_date_str else datetime.now()
     territory = territory or ""
     class_of_business = class_of_business or ""
@@ -128,6 +195,7 @@ def parse_policy_inputs(
     except Exception:
         sum_insured = 0.0
     endorsements = [e.strip() for e in endorsements_str.split(",") if e.strip()] if endorsements_str else []
+
     return Policy(
         policy_number=policy_number,
         bind_date=bind_date,
@@ -141,20 +209,61 @@ def parse_policy_inputs(
 
 @app.get("/", response_class=HTMLResponse)
 async def get_index(request: Request):
-    """
-    Render the homepage.
+    """Render the homepage."""
+    return templates.TemplateResponse(
+        request,
+        "index.html",
+        {
+            "baa_form": empty_baa_form(),
+            "baa_extraction_message": None,
+            "baa_extraction_error": None,
+        },
+    )
 
-    Starlette 1.0+ expects the ``TemplateResponse`` signature to take the
-    ``request`` as the first argument followed by the template name and
-    an optional context. Passing the context as a positional argument
-    using the old signature results in a ``TypeError`` in recent
-    Starlette versions【998423267929834†L450-L462】.  To ensure forward
-    compatibility we always pass ``request`` as the first argument.
-    """
-    # With the new Starlette API the request must be the first positional
-    # argument. The context can be omitted because ``request`` will be
-    # automatically injected into the template context.
-    return templates.TemplateResponse(request, "index.html")
+
+@app.post("/extract-baa", response_class=HTMLResponse)
+async def extract_baa(
+    request: Request,
+    baa_file: UploadFile = File(None),
+) -> HTMLResponse:
+    """Extract BAA rules from an uploaded text-based PDF before validation."""
+    baa_form = empty_baa_form()
+
+    try:
+        baa_text = await read_uploaded_document(baa_file)
+    except Exception as exc:
+        return templates.TemplateResponse(
+            request,
+            "index.html",
+            {
+                "baa_form": baa_form,
+                "baa_extraction_message": None,
+                "baa_extraction_error": f"Could not read that BAA file: {exc}",
+            },
+        )
+
+    if not baa_text.strip():
+        return templates.TemplateResponse(
+            request,
+            "index.html",
+            {
+                "baa_form": baa_form,
+                "baa_extraction_message": None,
+                "baa_extraction_error": "No text could be extracted. Please upload a text-based PDF or paste the BAA text manually.",
+            },
+        )
+
+    baa_form = build_baa_form_from_extraction(baa_text, baa_file.filename if baa_file else None)
+
+    return templates.TemplateResponse(
+        request,
+        "index.html",
+        {
+            "baa_form": baa_form,
+            "baa_extraction_message": "BAA rules extracted. Review and edit the fields below before generating the digital twin.",
+            "baa_extraction_error": None,
+        },
+    )
 
 
 @app.post("/process", response_class=HTMLResponse)
@@ -168,6 +277,7 @@ async def process(
     baa_authority_limit: Optional[str] = Form(None),
     baa_endorsements: Optional[str] = Form(None),
     baa_text: Optional[str] = Form(None),
+    baa_file: UploadFile = File(None),
     # Policy 1
     policy1_number: Optional[str] = Form(None),
     policy1_bind_date: Optional[str] = Form(None),
@@ -193,7 +303,14 @@ async def process(
     policy3_endorsements: Optional[str] = Form(None),
     policy3_file: UploadFile = File(None),
 ) -> HTMLResponse:
-    # Create BAA
+    uploaded_baa_text = ""
+    try:
+        uploaded_baa_text = await read_uploaded_document(baa_file)
+    except Exception:
+        uploaded_baa_text = ""
+
+    combined_baa_text = "\n\n".join([part for part in [baa_text, uploaded_baa_text] if part])
+
     baa = parse_baa_inputs(
         baa_name,
         baa_start_date,
@@ -202,21 +319,12 @@ async def process(
         baa_class,
         baa_authority_limit,
         baa_endorsements,
-        baa_text,
+        combined_baa_text,
     )
-    # Create policies list
+
     policies: List[Policy] = []
-    # helper to read uploaded file text
-    async def read_file(file: UploadFile) -> str:
-        if file and file.filename:
-            content_bytes = await file.read()
-            try:
-                return content_bytes.decode("utf-8", errors="ignore")
-            except Exception:
-                return ""
-        return ""
-    # Policy 1
-    p1_text = await read_file(policy1_file)
+
+    p1_text = await read_uploaded_document(policy1_file)
     if any([policy1_number, policy1_bind_date, policy1_territory, policy1_class, policy1_sum_insured, policy1_endorsements, p1_text]):
         policies.append(
             parse_policy_inputs(
@@ -229,8 +337,8 @@ async def process(
                 p1_text,
             )
         )
-    # Policy 2
-    p2_text = await read_file(policy2_file)
+
+    p2_text = await read_uploaded_document(policy2_file)
     if any([policy2_number, policy2_bind_date, policy2_territory, policy2_class, policy2_sum_insured, policy2_endorsements, p2_text]):
         policies.append(
             parse_policy_inputs(
@@ -243,8 +351,8 @@ async def process(
                 p2_text,
             )
         )
-    # Policy 3
-    p3_text = await read_file(policy3_file)
+
+    p3_text = await read_uploaded_document(policy3_file)
     if any([policy3_number, policy3_bind_date, policy3_territory, policy3_class, policy3_sum_insured, policy3_endorsements, p3_text]):
         policies.append(
             parse_policy_inputs(
@@ -257,15 +365,14 @@ async def process(
                 p3_text,
             )
         )
-    # Simulate bordereau as reported today
+
     bordereau = {p.policy_number: datetime.now() for p in policies}
-    # Check policies
+
     results = []
-    for p in policies:
-        issues = check_policy_against_baa(p, baa) + check_bordereau_delays(p, bordereau)
-        results.append({"policy": p, "issues": issues})
-    # Render the results page. The request must be passed as the first
-    # positional argument to conform with the Starlette 1.0+ template API.
+    for policy in policies:
+        issues = check_policy_against_baa(policy, baa) + check_bordereau_delays(policy, bordereau)
+        results.append({"policy": policy, "issues": issues})
+
     return templates.TemplateResponse(
         request,
         "results.html",
