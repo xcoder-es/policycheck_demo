@@ -4,3 +4,4 @@ jinja2
 python-multipart
 huggingface_hub
 requests
+pypdf==5.1.0
