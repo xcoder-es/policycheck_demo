@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import os
+from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
@@ -12,6 +12,6 @@ class AppConfig:
     max_csv_rows: int = 500
 
 
-
 def load_config() -> AppConfig:
-    return AppConfig(hf_token=os.getenv("HF_TOKEN"))
+    token = os.environ.get("HF_TOKEN")
+    return AppConfig(hf_token=token)
