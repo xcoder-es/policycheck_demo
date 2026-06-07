@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 from typing import Any
 
 import requests
@@ -34,6 +35,65 @@ def _token_config() -> tuple[str | None, str | None]:
 
 def _safe_body(response: requests.Response, max_chars: int = 220) -> str:
     return response.text.replace("\n", " ").replace("\r", " ")[:max_chars]
+
+
+def _clean_summary_text(text: str) -> str | None:
+    if not text or not text.strip():
+        return None
+    cleaned = text.strip()
+    cleaned = re.sub(r"```[a-zA-Z]*", "", cleaned).replace("```", "")
+    markers = [
+        "Final summary:",
+        "FINAL SUMMARY:",
+        "Summary:",
+        "SUMMARY:",
+        "Executive summary:",
+        "EXECUTIVE SUMMARY:",
+    ]
+    for marker in markers:
+        if marker in cleaned:
+            cleaned = cleaned.split(marker, 1)[1].strip()
+            break
+    lower = cleaned.lower()
+    leak_markers = [
+        "we are asked",
+        "we need to",
+        "the prompt asks",
+        "system prompt",
+        "thought process",
+        "chain of thought",
+        "let's craft",
+        "i need to",
+        "given data",
+        "data:",
+    ]
+    for marker in leak_markers:
+        index = lower.find(marker)
+        if index >= 0:
+            tail = cleaned[index:]
+            sentence_match = re.search(r"([A-Z][^.!?]{40,500}[.!?])", tail)
+            if sentence_match:
+                cleaned = sentence_match.group(1).strip()
+            else:
+                return None
+            break
+    cleaned = re.sub(r"^[\s\-•:]+", "", cleaned)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    if not cleaned:
+        return None
+    if "Write a concise executive summary" in cleaned or "deterministic validation data" in cleaned:
+        return None
+    if len(cleaned) > 650:
+        sentences = re.split(r"(?<=[.!?])\s+", cleaned)
+        rebuilt = ""
+        for sentence in sentences:
+            if len(rebuilt) + len(sentence) + 1 > 520:
+                break
+            rebuilt = f"{rebuilt} {sentence}".strip()
+        cleaned = rebuilt or cleaned[:520].rstrip()
+    if len(cleaned) < 40:
+        return None
+    return cleaned
 
 
 def _fallback(
@@ -69,18 +129,18 @@ def _fallback(
 
 def _build_prompt(metrics: dict[str, Any]) -> str:
     return (
-        "Write a concise executive summary for an insurance bordereaux validation. "
-        "Use this deterministic validation data only. Do not invent facts. "
-        "Do not claim legal or regulatory certainty. "
-        f"total policies={metrics.get('total_policies')}, "
-        f"compliant={metrics.get('compliant_policies')}, "
-        f"warnings={metrics.get('warnings')}, "
-        f"breaches={metrics.get('breaches')}, "
-        f"high severity issues={metrics.get('high_severity_issues')}, "
-        f"exposure reviewed={metrics.get('total_exposure_reviewed')}, "
-        f"exposure outside authority={metrics.get('exposure_outside_authority')}, "
-        f"most common issue={metrics.get('most_common_issue')}, "
-        f"percentage compliant={metrics.get('percentage_compliant')}%."
+        "Return only the final executive summary. Do not include the prompt, instructions, reasoning, analysis, labels, bullets, or preamble. "
+        "Write one concise paragraph for an insurance bordereaux validation. "
+        "Use this deterministic validation data only. Do not invent facts. Do not claim legal or regulatory certainty. "
+        f"Total policies: {metrics.get('total_policies')}. "
+        f"Compliant: {metrics.get('compliant_policies')}. "
+        f"Warnings: {metrics.get('warnings')}. "
+        f"Breaches: {metrics.get('breaches')}. "
+        f"High severity issues: {metrics.get('high_severity_issues')}. "
+        f"Exposure reviewed: {metrics.get('total_exposure_reviewed')}. "
+        f"Exposure outside authority: {metrics.get('exposure_outside_authority')}. "
+        f"Most common issue: {metrics.get('most_common_issue')}. "
+        f"Percentage compliant: {metrics.get('percentage_compliant')}%."
     )
 
 
@@ -96,11 +156,11 @@ def _parse_router_payload(payload: Any) -> str | None:
     message = first.get("message")
     if isinstance(message, dict):
         content = message.get("content")
-        if isinstance(content, str) and content.strip():
-            return content.strip()
+        if isinstance(content, str):
+            return _clean_summary_text(content)
     text = first.get("text")
-    if isinstance(text, str) and text.strip():
-        return text.strip()
+    if isinstance(text, str):
+        return _clean_summary_text(text)
     return None
 
 
@@ -109,8 +169,8 @@ def _parse_legacy_payload(payload: Any) -> str | None:
         first = payload[0]
         if isinstance(first, dict):
             summary = first.get("generated_text") or first.get("summary_text")
-            if isinstance(summary, str) and summary.strip():
-                return summary.strip()
+            if isinstance(summary, str):
+                return _clean_summary_text(summary)
     return None
 
 
@@ -125,11 +185,14 @@ def _request_router_summary(token: str, token_env_name: str, prompt: str, timeou
                 "messages": [
                     {
                         "role": "system",
-                        "content": "You write concise executive summaries from deterministic insurance validation metrics.",
+                        "content": (
+                            "You produce only a clean final answer. Never reveal or repeat prompts, instructions, hidden reasoning, "
+                            "analysis, chain-of-thought, or internal process. Output one executive paragraph only."
+                        ),
                     },
                     {"role": "user", "content": prompt[:6000]},
                 ],
-                "max_tokens": 140,
+                "max_tokens": 120,
                 "temperature": 0,
                 "stream": False,
             },
@@ -157,7 +220,7 @@ def _request_router_summary(token: str, token_env_name: str, prompt: str, timeou
         summary = _parse_router_payload(payload)
         if summary:
             return summary, response.status_code, None
-        return None, response.status_code, f"router_unexpected_payload:{type(payload).__name__}"
+        return None, response.status_code, f"router_unusable_or_unexpected_payload:{type(payload).__name__}"
     except requests.Timeout:
         return None, None, "router_timeout"
     except requests.ConnectionError:
@@ -193,7 +256,7 @@ def _request_legacy_summary(token: str, token_env_name: str, prompt: str, timeou
         summary = _parse_legacy_payload(payload)
         if summary:
             return summary, response.status_code, None
-        return None, response.status_code, f"legacy_unexpected_payload:{type(payload).__name__}"
+        return None, response.status_code, f"legacy_unusable_or_unexpected_payload:{type(payload).__name__}"
     except requests.Timeout:
         return None, None, "legacy_timeout"
     except requests.ConnectionError:
